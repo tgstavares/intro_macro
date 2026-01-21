@@ -1,0 +1,33 @@
+.DS_Store
+**/.DS_Store
+
+.vscode/
+**/.vscode/
+
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+.quarto/
+**/.quarto/
+
+.jupyter_cache/
+**/.jupyter_cache/
+
+_cache/
+**/_cache/
+
+_site/
+**/_site/
+
+.venv/
+**/.venv/
+
+# Local renders in the source folder (the published site lives in `docs/`)
+/*.html
+/*_files/
+
+# Optional: local helper script (keep local, not in repo)
+quarto.sh
+
+/.quarto/
+**/*.quarto_ipynb

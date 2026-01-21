@@ -1,0 +1,797 @@
+---
+title: "Portugal — Algumas estatísticas macroeconómicas"
+subtitle: "Fonte principal: Eurostat"
+lang: pt-PT
+jupyter: py313
+format:
+  html:
+    toc: true
+    toc-location: left
+    number-sections: true
+    theme: cosmo
+    from: markdown+tex_math_single_backslash
+execute:
+  echo: false
+  warning: false
+  message: false
+  cache: true
+---
+
+## Introdução
+
+Este documento reúne um conjunto de indicadores macroeconómicos para caracterizar a economia portuguesa. O foco está na leitura económica das séries (níveis, ciclos e tendências), deixando o detalhe técnico do código em segundo plano.
+
+### Sobre o documento e como executar
+
+Este ficheiro é um documento **Quarto**, que combina texto, figuras e código num único relatório reprodutível.
+
+**Requisitos**
+
+- Quarto instalado.
+- Python com as bibliotecas `pandas`, `requests`, `plotly` e `jupyter-cache`.
+
+**Como executar**
+
+- Terminal: `quarto render portugal_eurostat.qmd` (gera o HTML).
+- Pré-visualização: `quarto preview portugal_eurostat.qmd` (abre um servidor local).
+
+**Vantagens para os estudantes**
+
+- Transparência: as figuras são geradas a partir de dados oficiais e atualizáveis.
+- Reprodutibilidade: qualquer pessoa pode regenerar os resultados.
+- Integração: texto, dados e gráficos num único fluxo de trabalho.
+
+## Dados e notas metodológicas
+
+- As séries são obtidas via API do Eurostat e são, sempre que disponível, **ajustadas sazonalmente**.
+- O PIB trimestral é **anualizado** multiplicando por 4, para facilitar a comparação com valores anuais.
+- As percentagens são apresentadas com ponto decimal (por exemplo, 2.5%).
+
+```{python}
+#| label: setup
+#| include: false
+import pandas as pd
+import requests
+import plotly.express as px
+import os
+import subprocess
+import tempfile
+from pathlib import Path
+
+def eurostat_series(dataset, params, freq, value_name="value"):
+    params = dict(params)
+    params["format"] = "JSON"
+    EUROSTAT_BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
+    try:
+        r = requests.get(f"{EUROSTAT_BASE}/{dataset}", params=params, timeout=30)
+        if "sorry.ec.europa.eu" in r.url:
+            raise ConnectionError(
+                "Eurostat API unavailable (redirected to sorry.ec.europa.eu)."
+            )
+        r.raise_for_status()
+        j = r.json()
+    except (requests.RequestException, ValueError) as exc:
+        raise ConnectionError(
+            "Eurostat API unavailable or returned invalid JSON."
+        ) from exc
+    time_index = j["dimension"]["time"]["category"]["index"]
+    values = j.get("value", {})
+    df = (
+        pd.DataFrame(
+            [(t, values.get(str(i))) for t, i in time_index.items()],
+            columns=["period", value_name],
+        )
+        .dropna()
+        .sort_values("period")
+    )
+    periods = df.pop("period").astype(str)
+    if freq == "M":
+        periods = periods.str.replace(r"^(\d{4})M(\d{2})$", r"\1-\2", regex=True)
+    df["time"] = (
+        pd.PeriodIndex(periods, freq=freq).to_timestamp(how="end").normalize()
+    )
+    return df.reset_index(drop=True)
+```
+
+```{python}
+#| label: dados
+#| include: false
+# PIB e deflator
+gdp_real = eurostat_series(
+    "namq_10_gdp",dict(geo="PT", na_item="B1GQ", s_adj="SCA", unit="CLV15_MEUR"),freq="Q",value_name="gdp_real",)
+gdp_nominal = eurostat_series(
+    "namq_10_gdp",dict(geo="PT", na_item="B1GQ", s_adj="SCA", unit="CP_MEUR"),freq="Q",value_name="gdp_nominal",)
+
+exports_gs = eurostat_series(
+    "namq_10_gdp",dict(geo="PT", na_item="P6", s_adj="SCA", unit="CP_MEUR"),freq="Q",value_name="exports_gs",)
+imports_gs = eurostat_series(
+    "namq_10_gdp",dict(geo="PT", na_item="P7", s_adj="SCA", unit="CP_MEUR"),freq="Q",value_name="imports_gs",)
+
+employment_rate_25_54 = eurostat_series(
+    "lfsi_emp_q",dict(geo="PT", age="Y25-54", sex="T", s_adj="SA", unit="PC_POP", indic_em="EMP_LFS"),freq="Q",value_name="employment_rate_25_54",)
+employment_rate_15_64 = eurostat_series(
+    "lfsi_emp_q",dict(geo="PT", age="Y15-64", sex="T", s_adj="SA", unit="PC_POP", indic_em="EMP_LFS"),freq="Q",value_name="employment_rate_15_64",)
+unemployment_rate = eurostat_series(
+    "une_rt_m",dict(geo="PT", age="TOTAL", sex="T", s_adj="SA", unit="PC_ACT"),freq="M",value_name="unemployment_rate",)
+
+gov_budget_balance = eurostat_series(
+    "gov_10dd_edpt1",dict(geo="PT", sector="S13", na_item="B9", unit="PC_GDP"),freq="Y",value_name="gov_budget_balance",)
+gov_debt_gdp = eurostat_series(
+    "gov_10dd_edpt1",dict(geo="PT", sector="S13", na_item="GD", unit="PC_GDP"),freq="Y",value_name="gov_debt_gdp",)
+
+gdp_nominal_y = eurostat_series(
+    "nama_10_gdp",dict(geo="PT", na_item="B1GQ", unit="CP_MEUR"),freq="Y",value_name="gdp_nominal_y",)
+
+gdp_pc_pt = eurostat_series(
+    "nama_10_pc",dict(geo="PT", na_item="B1GQ", unit="PC_EU27_2020_HAB_MPPS_CP"),freq="Y",value_name="gdp_pc_pt",)
+gdp_pc_de = eurostat_series(
+    "nama_10_pc",dict(geo="DE", na_item="B1GQ", unit="PC_EU27_2020_HAB_MPPS_CP"),freq="Y",value_name="gdp_pc_de",)
+
+bop_base = dict(geo="PT", partner="WRL_REST", currency="MIO_EUR", sector10="S1", sectpart="S1", stk_flow="BAL")
+current_account = eurostat_series(
+    "bop_c6_a",dict(bop_base, bop_item="CA"),freq="Y",value_name="current_account",)
+current_account_goods = eurostat_series(
+    "bop_c6_a",dict(bop_base, bop_item="G"),freq="Y",value_name="current_account_goods",)
+current_account_services = eurostat_series(
+    "bop_c6_a",dict(bop_base, bop_item="S"),freq="Y",value_name="current_account_services",)
+current_account_primary_income = eurostat_series(
+    "bop_c6_a",dict(bop_base, bop_item="IN1"),freq="Y",value_name="current_account_primary_income",)
+current_account_secondary_income = eurostat_series(
+    "bop_c6_a",dict(bop_base, bop_item="IN2"),freq="Y",value_name="current_account_secondary_income",)
+capital_account = eurostat_series(
+    "bop_c6_a",dict(bop_base, bop_item="KA"),freq="Y",value_name="capital_account",)
+
+hicp = eurostat_series(
+    "prc_hicp_midx",dict(geo="PT", coicop="CP00", unit="I15"),freq="M",value_name="hicp",)
+hicp["hicp"] = hicp["hicp"] / hicp.loc[hicp["time"] == pd.Timestamp("2025-01-31"), "hicp"].iloc[0]
+
+deflator = (gdp_nominal.set_index("time")["gdp_nominal"].div(gdp_real.set_index("time")["gdp_real"])
+    .rename("deflator")
+    .reset_index())
+deflator["deflator"] = deflator["deflator"] / deflator.loc[deflator["time"] == pd.Timestamp("2025-03-31"), "deflator"].iloc[0]
+
+gdp_real["gdp_real"] = gdp_nominal["gdp_nominal"] / deflator["deflator"]
+
+bop_df = (
+    pd.concat(
+        [
+            current_account.set_index("time"),
+            current_account_goods.set_index("time"),
+            current_account_services.set_index("time"),
+            current_account_primary_income.set_index("time"),
+            current_account_secondary_income.set_index("time"),
+            capital_account.set_index("time"),
+            gdp_nominal_y.set_index("time"),
+        ],
+        axis=1,
+    )
+    .sort_index()
+    .reset_index()
+)
+```
+
+## Atividade económica
+
+O PIB real mostra o comportamento do ciclo económico, enquanto o PIB nominal agrega também os efeitos de preços. A comparação entre ambos ajuda a separar crescimento real de inflação.
+
+```{python}
+#| label: fig-pib
+#| fig-cap: "PIB real e nominal (trimestral anualizado)."
+
+df_long = (gdp_real.merge(gdp_nominal, on="time", how="outer").sort_values("time")
+    .rename(columns={
+            "gdp_real": "PIB a preços constantes",
+            "gdp_nominal": "PIB a preços correntes",})
+    .melt(
+        id_vars="time",
+        value_vars=["PIB a preços constantes", "PIB a preços correntes"],
+        var_name="series",
+        value_name="gdp",))
+df_long["gdp"] *= 4
+
+fig = (px.line(
+        df_long,
+        x="time",
+        y="gdp",
+        color="series",
+        title="PIB em Portugal: valor nominal vs. real (série trimestral anualizada, em milhões de euros)",
+        template="plotly_white",
+        color_discrete_map={"PIB a preços constantes": "blue", "PIB a preços correntes": "red"},
+        markers=True,
+        line_shape="spline",)
+    .update_traces(line_width=2.5, marker_size=5, marker_color="white", marker_symbol="circle", marker_line_width=1.0)
+    .update_traces(marker_symbol="circle",selector=dict(name="PIB a preços correntes"))
+    )
+
+fig.update_layout(
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(
+        x=0.99,
+        y=0.01,
+        xanchor="right",
+        yanchor="bottom",
+        bgcolor="rgba(0,0,0,0)",
+        borderwidth=0,
+    ),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M48", tickformat="%Y", hoverformat="%Y-%m-%d")
+fig.update_yaxes(tickformat=",")
+fig.show()
+```
+
+**Como alterar o ano base usando o deflator (passo a passo).** Partimos do PIB nominal \(Y_t^{nom}\) e do PIB real \(Y_t^{real}\).
+
+1) Calcule o deflator implícito:
+\[
+P_t = \frac{Y_t^{nom}}{Y_t^{real}}.
+\]
+2) Escolha o ano base \(b\) e altere a normalização do deflator:
+\[
+P_t^{(b)} = 100 \cdot \frac{P_t}{P_b}.
+\]
+3) Re-expresse o PIB real a preços do ano \(b\):
+\[
+Y_t^{real,(b)} = \frac{100 \cdot Y_t^{nom}}{P_t^{(b)}}.
+\]
+Assim, \(Y_t^{real,(b)}\) fica em preços do novo ano base e é comparável ao longo do tempo.
+
+**Leitura económica:**
+
+- A recessão de 2008-2013 é claramente visível no PIB real, com recuperação gradual no período seguinte.
+- O PIB nominal cresce mais rapidamente em fases de inflação mais elevada, ampliando o desfasamento face ao PIB real.
+
+## Preços e inflação
+
+A inflação é analisada com duas medidas: o **IHPC** (preços no consumo) e o **deflator do PIB** (preços na produção interna). Para medir a variação homóloga usa‑se, por exemplo,
+\[
+\pi_t^{\text{hom}} = \left(\frac{P_t}{P_{t-12}} - 1\right)\cdot 100,
+\]
+onde \(P_t\) é o índice de preços no mês \(t\). Esta comparação com o mesmo mês do ano anterior reduz a influência da sazonalidade (saldos, férias, energia) e facilita a leitura das tendências.
+
+**Nota sobre sazonalidade.** O IHPC não é, em geral, divulgado em versão dessazonalizada. Para analisar variações em cadeia (mês‑a‑mês) ignorando os efeitos da sazonalidade nos preços é necessário dessazonalizar a série. O Eurostat, por exemplo, use o método econométrico [TRAMO/SEATS](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Short-term_business_statistics_-_seasonal_adjustment_methods) para esse fim.
+
+**IHPC vs. deflator do PIB.** O IHPC mede a evolução do custo do cabaz de consumo das famílias, incluindo bens importados. Já o deflator do PIB reflete os preços de toda a produção interna (bens e serviços produzidos no país). Por isso, choques externos — como energia ou bens importados — podem elevar o IHPC sem o mesmo impacto no deflator, e alterações nos preços de bens exportados podem afetar o deflator sem mexer diretamente no IHPC.
+
+**IPC vs. IHPC (nota breve).** O IPC é o índice nacional de preços no consumidor; o IHPC segue uma metodologia harmonizada na UE para garantir comparabilidade entre países. As diferenças são geralmente pequenas, mas refletem regras comuns de cobertura e ponderação.
+
+```{python}
+#| label: fig-precos
+#| fig-cap: "IHPC e deflator do PIB (níveis e variação homóloga)."
+
+hicp_ts = hicp.set_index("time")["hicp"].asfreq("ME")
+if hicp_ts.isna().any():
+    m = hicp_ts[hicp_ts.isna()].index
+    raise ValueError(f"HICP series has missing months: {m.min().date()} to {m.max().date()}")
+
+r_code = """
+args <- commandArgs(trailingOnly=TRUE)
+in_csv <- args[1]; out_csv <- args[2]
+suppressMessages(library(RJDemetra))
+df <- read.csv(in_csv); df$time <- as.Date(df$time)
+start <- c(as.integer(format(df$time[1], "%Y")), as.integer(format(df$time[1], "%m")))
+ts_data <- ts(df$hicp, frequency=12, start=start)
+res <- tramoseats(ts_data)
+out <- data.frame(time=df$time, hicp_sa=as.numeric(res$final$series[, "sa"]))
+write.csv(out, out_csv, row.names=FALSE)
+"""
+
+with tempfile.TemporaryDirectory() as d:
+    d = Path(d)
+    hicp_ts.to_csv(d / "hicp.csv", index_label="time")
+    (d / "tramoseats.R").write_text(r_code)
+    subprocess.run(
+        ["Rscript", str(d / "tramoseats.R"), str(d / "hicp.csv"), str(d / "hicp_sa.csv")],
+        check=True,
+    )
+    hicp_sa = pd.read_csv(d / "hicp_sa.csv", parse_dates=["time"])
+
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+df = (
+    hicp.merge(hicp_sa, on="time", how="outer")
+    .merge(deflator, on="time", how="outer")
+    .sort_values("time")
+    .rename(columns={"hicp": "IHPC", "hicp_sa": "IHPC SA", "deflator": "Deflator do PIB"})
+    .melt("time", ["IHPC", "IHPC SA", "Deflator do PIB"], "series", "indice")
+    .dropna(subset=["indice"])
+)
+
+yoy = df[df["series"].isin(["IHPC", "Deflator do PIB"])].copy()
+lag = yoy[["time", "series", "indice"]].rename(columns={"time": "time_lag", "indice": "indice_lag"})
+yoy = (
+    yoy.assign(time_lag=yoy["time"] - pd.DateOffset(years=1))
+    .merge(lag, on=["time_lag", "series"], how="left")
+    .assign(yoy=lambda d: (d["indice"] / d["indice_lag"] - 1) * 100)
+    .dropna(subset=["yoy"])
+)
+
+colors = {"IHPC": "blue", "IHPC SA": "lightblue", "Deflator do PIB": "red"}
+widths = {"IHPC": 2.5, "IHPC SA": 1.0, "Deflator do PIB": 2.5}
+
+fig = make_subplots(rows=1, cols=2, subplot_titles=("Índices", "Variação homóloga (%)"))
+for series, d in df.groupby("series"):
+    fig.add_trace(
+        go.Scatter(
+            x=d["time"],
+            y=d["indice"],
+            name=series,
+            mode="lines",
+            line=dict(color=colors[series], width=widths[series], shape="spline"),
+            showlegend=series != "IHPC SA",
+        ),
+        row=1,
+        col=1,
+    )
+
+for series, d in yoy.groupby("series"):
+    fig.add_trace(
+        go.Scatter(
+            x=d["time"],
+            y=d["yoy"],
+            name=f"{series} YoY",
+            mode="lines",
+            line=dict(color=colors[series], width=widths[series], shape="linear"),
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+fig.update_layout(
+    title="Portugal: IHPC vs. deflator do PIB",
+    template="plotly_white",
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(x=0.49, y=0.01, xanchor="right", yanchor="bottom", bgcolor="rgba(0,0,0,0)", borderwidth=0),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M48", tickformat="%Y", hoverformat="%Y-%m-%d")
+fig.update_yaxes(tickformat=",", col=1)
+fig.update_yaxes(tickformat=".1f", ticksuffix="%", col=2)
+fig.show()
+
+```
+
+**Leitura económica:**
+
+- O IHPC capta a inflação sentida pelos consumidores, enquanto o deflator do PIB inclui os preços de toda a produção interna.
+- Em períodos de choques externos (energia, importações), o IHPC pode divergir do deflator.
+
+## Mercado de trabalho
+
+A taxa de desemprego e as taxas de emprego mostram a evolução do mercado de trabalho e a sua resposta ao ciclo económico.
+
+Em termos simples, a taxa de desemprego é
+\[
+u_t = \frac{U_t}{L_t}\cdot 100,
+\]
+onde \(U_t\) é o número de desempregados e \(L_t\) é a força de trabalho (empregados \(E_t\) mais desempregados \(U_t\)). A taxa de emprego é
+\[
+e_t = \frac{E_t}{P_t}\cdot 100,
+\]
+onde \(E_t\) é o número de empregados e \(P_t\) é a população do grupo etário considerado.
+
+```{python}
+#| label: fig-trabalho
+#| fig-cap: "Mercado de trabalho: desemprego e emprego."
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+fig = make_subplots(rows=1, cols=2, subplot_titles=("desemprego % da força de trabalho", "emprego % da população"))
+
+u = unemployment_rate.sort_values("time")
+uy = next(c for c in u.columns if c != "time")
+fig.add_trace(
+    go.Scatter(
+        x=u["time"],
+        y=u[uy],
+        name="Desemprego",
+        mode="lines",
+        line=dict(color="blue", width=2.5, shape="linear"),
+        showlegend=False,
+    ),
+    row=1,
+    col=1,
+)
+
+emp_2554 = employment_rate_25_54.sort_values("time")
+emp_1564 = employment_rate_15_64.sort_values("time")
+
+fig.add_trace(
+    go.Scatter(
+        x=emp_2554["time"],
+        y=emp_2554["employment_rate_25_54"],
+        name="Emprego 25-54 anos",
+        mode="lines",
+        line=dict(color="blue", width=2.5, shape="linear"),
+        showlegend=True,
+    ),
+    row=1,
+    col=2,
+)
+fig.add_trace(
+    go.Scatter(
+        x=emp_1564["time"],
+        y=emp_1564["employment_rate_15_64"],
+        name="Emprego 15-64 anos",
+        mode="lines",
+        line=dict(color="red", width=2.5, shape="linear"),
+        showlegend=True,
+    ),
+    row=1,
+    col=2,
+)
+
+fig.update_layout(
+    title="Portugal: taxas de desemprego e emprego",
+    template="plotly_white",
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(x=0.99, y=0.01, xanchor="right", yanchor="bottom", bgcolor="rgba(0,0,0,0)", borderwidth=0),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M64", tickformat="%Y", hoverformat="%Y-%m-%d", col=1)
+fig.update_xaxes(dtick="M48", tickformat="%Y", hoverformat="%Y-%m-%d", col=2)
+fig.update_yaxes(tickformat=".1f", ticksuffix="%")
+fig.show()
+
+```
+
+**Leitura económica:**
+
+- A crise financeira levou a um pico de desemprego no início da década de 2010.
+- O período pós-2014 mostra recuperação do emprego, com melhoria gradual das taxas de participação.
+
+## Finanças públicas
+
+Nesta secção olhamos para duas variáveis centrais das contas públicas: o **saldo orçamental** (B9) e a **dívida pública** (GD), ambos em percentagem do PIB. Esta normalização facilita a comparação ao longo do tempo e ajuda a perceber a sustentabilidade das finanças públicas.
+
+Um ponto importante é distinguir **fluxos** e **stocks**. O saldo orçamental mede um fluxo (receitas menos despesas ao longo do ano), enquanto a dívida é um stock (o valor acumulado num determinado momento). Por isso, a variação anual da dívida não coincide necessariamente com o saldo. O Eurostat contabiliza essa diferença através do **ajustamento stock‑fluxo**, \(SFA_t\), que capta operações e efeitos que alteram o stock de dívida sem passarem diretamente pelo défice/excedente (por exemplo, aquisição/venda de ativos, privatizações, reavaliações e outros ajustamentos).
+
+Para fixar ideias, definimos \(D_t\) como o stock de dívida nominal, \(Y_t\) como o PIB nominal, \(d_t = D_t/Y_t\), \(B9_t\) como o saldo orçamental (positivo em excedente) e \(g_t\) como o crescimento nominal do PIB, com \(Y_t = Y_{t-1}(1+g_t)\). A identidade nominal de acumulação da dívida é:
+\[
+D_t = D_{t-1} - B9_t + SFA_t.
+\]
+
+Dividindo por \(Y_t\) e reorganizando (com \(b9_t = B9_t/Y_t\) e \(sfa_t = SFA_t/Y_t\)), obtemos a variação exata da dívida em percentagem do PIB:
+\[
+\Delta d_t = -b9_t + sfa_t - \frac{g_t}{1+g_t}\, d_{t-1}.
+\]
+
+Em termos simples: um excedente (maior \(b9_t\)) reduz a dívida/PIB, um \(SFA_t\) positivo tende a aumentá‑la, e um maior crescimento nominal (\(g_t\)) reduz \(d_t\) por “diluição” do denominador.
+
+```{python}
+#| label: fig-fiscal
+#| fig-cap: "Saldo orçamental e dívida pública (% do PIB)."
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+fig = make_subplots(rows=1, cols=2, subplot_titles=("Saldo orçamental", "Dívida pública"))
+
+deficit = gov_budget_balance.sort_values("time")
+debt = gov_debt_gdp.sort_values("time")
+
+bar_width        = 365 * 24 * 60 * 60 * 1000 *          0.7
+offset_bar_width =-365 * 24 * 60 * 60 * 1000 * 0.5 * (1+0.7)
+
+bal_colors = [
+    "rgba(37, 99, 235, 0.4)" if v >= 0 else "rgba(220, 38, 38, 0.4)"
+    for v in deficit["gov_budget_balance"]
+]
+border_colors = [
+    "rgba(37, 99, 235, 1.0)" if v >= 0 else "rgba(220, 38, 38, 1.0)"
+    for v in deficit["gov_budget_balance"]
+]
+
+fig.add_trace(
+    go.Bar(
+        x=deficit["time"],
+        y=deficit["gov_budget_balance"],
+        name="Saldo orçamental",
+        marker=dict(color=bal_colors, line=dict(color=border_colors, width=1.5)),
+        width=bar_width,
+        offset=offset_bar_width,
+        showlegend=False,
+    ),
+    row=1,
+    col=1,
+)
+
+fig.add_trace(
+    go.Bar(
+        x=debt["time"],
+        y=debt["gov_debt_gdp"],
+        name="Dívida pública",
+        marker=dict(color="rgba(220, 38, 38, 0.4)", line=dict(color="rgba(220, 38, 38,1)", width=1.5)),
+        width=bar_width,
+        offset=offset_bar_width,
+        showlegend=False,
+    ),
+    row=1,
+    col=2,
+)
+
+fig.update_layout(
+    template="plotly_white",
+    title="Portugal: saldo orçamental e dívida pública (% do PIB)",
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(x=0.99, y=0.01, xanchor="right", yanchor="bottom", bgcolor="rgba(0,0,0,0)", borderwidth=0),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M60", tickformat="%Y", hoverformat="%Y-%m-%d", ticks="outside", ticklen=6, tickwidth=1)
+fig.update_yaxes(tickformat=".1f", ticksuffix="%", col=1)
+fig.update_yaxes(tickformat=".1f", ticksuffix="%", col=2, rangemode="tozero")
+fig.show()
+```
+
+**Leitura económica:**
+
+- O aumento da dívida pública é sobretudo visível após a crise financeira e durante episódios de choque macroeconómico.
+- A transição para excedentes orçamentais em alguns anos recentes indica consolidação fiscal.
+
+## Setor externo
+
+O **setor externo** descreve as relações económicas de Portugal com o resto do mundo: quanto exportamos, quanto importamos e como é financiado o diferencial. Numa economia pequena e aberta, estas contas são particularmente informativas porque ajudam a perceber (i) a dependência de procura externa, (ii) a vulnerabilidade a choques de preços internacionais e (iii) a necessidade (ou não) de financiamento externo.
+
+Ao longo do documento, apresentamos as séries em **percentagem do PIB**, isto é, normalizamos por \(Y_t\). Isto permite comparar períodos diferentes sem ficar “preso” ao tamanho absoluto da economia.
+
+### Exportações e importações
+
+Começamos por uma medida simples de abertura: as exportações \(X_t\) e as importações \(M_t\) (de bens e serviços) em percentagem do PIB. O diferencial corresponde ao saldo de bens e serviços (ou “exportações líquidas”):
+\[
+nx_t = \left(\frac{X_t - M_t}{Y_t}\right)\cdot 100.
+\]
+Na figura, a área sombreada entre as duas linhas indica precisamente esse diferencial: **azul** quando \(X_t \ge M_t\) e **vermelho** quando \(X_t < M_t\).
+
+```{python}
+#| label: fig-exp-imp
+#| fig-cap: "Exportações e importações (% do PIB)."
+
+import plotly.graph_objects as go
+
+
+df = (
+    exports_gs.merge(imports_gs, on="time", how="inner")
+    .merge(gdp_nominal, on="time", how="inner")
+    .sort_values("time")
+)
+df["exp_share"] = df["exports_gs"] / df["gdp_nominal"] * 100
+df["imp_share"] = df["imports_gs"] / df["gdp_nominal"] * 100
+
+fill_df = df[["time", "exp_share", "imp_share"]].copy()
+fill_df["diff"] = fill_df["exp_share"] - fill_df["imp_share"]
+
+rows = []
+for i in range(len(fill_df) - 1):
+    rows.append(fill_df.iloc[i].to_dict())
+    d0 = fill_df.iloc[i]["diff"]
+    d1 = fill_df.iloc[i + 1]["diff"]
+    if d0 * d1 < 0:
+        frac = d0 / (d0 - d1)
+        t0 = fill_df.iloc[i]["time"]
+        t1 = fill_df.iloc[i + 1]["time"]
+        tc = t0 + (t1 - t0) * frac
+        e0 = fill_df.iloc[i]["exp_share"]
+        e1 = fill_df.iloc[i + 1]["exp_share"]
+        ec = e0 + (e1 - e0) * frac
+        rows.append({"time": tc, "exp_share": ec, "imp_share": ec, "diff": 0.0})
+rows.append(fill_df.iloc[-1].to_dict())
+
+fill_df = pd.DataFrame(rows).sort_values("time").reset_index(drop=True)
+mask = fill_df["diff"] >= 0
+
+fig = go.Figure()
+
+def add_fill(data, seg_mask, color, exp_above):
+    groups = (seg_mask != seg_mask.shift()).cumsum()
+    for _, g in data[seg_mask].groupby(groups[seg_mask]):
+        x = g["time"]
+        upper = g["exp_share"] if exp_above else g["imp_share"]
+        lower = g["imp_share"] if exp_above else g["exp_share"]
+        fig.add_trace(
+            go.Scatter(
+                x=pd.concat([x, x[::-1]]),
+                y=pd.concat([upper, lower[::-1]]),
+                fill="toself",
+                fillcolor=color,
+                line=dict(color="rgba(0,0,0,0)"),
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+add_fill(fill_df, mask, "rgba(37, 99, 235, 0.2)", True)
+add_fill(fill_df, ~mask, "rgba(220, 38, 38, 0.2)", False)
+
+fig.add_trace(
+    go.Scatter(
+        x=df["time"],
+        y=df["exp_share"],
+        name="Exportações",
+        mode="lines",
+        line=dict(color="blue", width=2.5, shape="linear"),
+    )
+)
+fig.add_trace(
+    go.Scatter(
+        x=df["time"],
+        y=df["imp_share"],
+        name="Importações",
+        mode="lines",
+        line=dict(color="red", width=2.5, shape="linear"),
+    )
+)
+
+fig.update_layout(
+    template="plotly_white",
+    title="Portugal: exportações e importações (% do PIB)",
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(x=0.99, y=0.01, xanchor="right", yanchor="bottom", bgcolor="rgba(0,0,0,0)", borderwidth=0),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M60", tickformat="%Y", hoverformat="%Y-%m-%d")
+fig.update_yaxes(tickformat=".1f", ticksuffix="%")
+fig.show()
+
+```
+
+### Conta corrente e conta de capital
+
+O comércio de bens e serviços é apenas uma parte do saldo externo. Na **balança de pagamentos**, a **conta corrente** agrega (i) bens, (ii) serviços, (iii) rendimento primário (por exemplo, juros e lucros) e (iv) rendimento secundário (transferências correntes). A **conta de capital** é normalmente menor, mas contribui para o saldo global. Em termos simples:
+\[
+\text{saldo total} = \text{conta corrente} + \text{conta de capital}.
+\]
+No gráfico seguinte, as barras mostram as **componentes** (em \% do PIB), com valores positivos acima de zero e negativos abaixo; a linha preta representa o **saldo total**.
+
+```{python}
+#| label: fig-bop
+#| fig-cap: "Conta corrente (componentes) e conta de capital (% do PIB)."
+
+import plotly.graph_objects as go
+
+components = [
+    ("current_account_goods", "Bens"),
+    ("current_account_services", "Serviços"),
+    ("current_account_primary_income", "Rendimento primário"),
+    ("current_account_secondary_income", "Rendimento secundário"),
+    ("capital_account", "Conta de capital"),
+]
+
+colors = {
+    "current_account_goods": "rgba(37, 99, 235, 0.6)",
+    "current_account_services": "rgba(16, 185, 129, 0.6)",
+    "current_account_primary_income": "rgba(249, 115, 22, 0.6)",
+    "current_account_secondary_income": "rgba(239, 68, 68, 0.6)",
+    "capital_account": "rgba(107, 114, 128, 0.6)",
+}
+
+df = bop_df.dropna(subset=["gdp_nominal_y"]).sort_values("time").copy()
+df = df[df["time"].dt.year != 1995]
+df["time"] = df["time"] - pd.DateOffset(months=6)
+for col, _ in components:
+    df[f"{col}_share"] = df[col] / df["gdp_nominal_y"] * 100
+
+df["total_balance"] = df[[f"{col}_share" for col, _ in components]].sum(axis=1)
+
+fig = go.Figure()
+for col, label in components:
+    fig.add_trace(
+        go.Bar(
+            x=df["time"],
+            y=df[f"{col}_share"],
+            name=label,
+            marker_color=colors[col],
+        )
+    )
+
+fig.add_trace(
+    go.Scatter(
+        x=df["time"],
+        y=df["total_balance"],
+        name="Saldo total",
+        mode="lines+markers",
+        line=dict(color="black", width=3.0),
+        marker=dict(size=7, color="white", line=dict(color="black", width=3.0)),
+    )
+)
+
+fig.update_layout(
+    barmode="relative",
+    template="plotly_white",
+    title="Portugal: balança da conta corrente + conta de capital (% do PIB)",
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(x=1.02, y=0.5, xanchor="left", yanchor="middle", bgcolor="rgba(0,0,0,0)", borderwidth=0),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M36", tickformat="%Y", hoverformat="%Y")
+fig.update_yaxes(tickformat=".1f", ticksuffix="%")
+fig.show()
+```
+
+**Leitura económica:**
+
+- Um saldo externo positivo (sumatório da conta corrente com a conta de capital) significa que, nesse período, Portugal é **credor líquido** face ao resto do mundo; um saldo negativo indica **necessidade de financiamento externo**.
+- A decomposição em conta corrente ajuda a separar o que vem do comércio internacional (bens e serviços) e do que vem de rendimentos e transferências.
+- Em economias como a portuguesa, é comum o saldo das transacções de serviços contribuir positivamente e compensar, pelo menos em parte, o saldo das transacções de bens.
+
+## Convergência de rendimento
+
+O PIB per capita de Portugal é mostrado em percentagem da média da UE27 (2020). Para comparação, também é apresentado o rácio face à Alemanha.
+
+```{python}
+#| label: fig-pib-pc
+#| fig-cap: "PIB per capita relativo (UE27=100)."
+
+import plotly.express as px
+
+df = (
+    gdp_pc_pt.merge(gdp_pc_de, on="time", how="inner")
+    .sort_values("time")
+)
+
+df_long = pd.DataFrame(
+    {
+        "time": df["time"],
+        "Portugal vs. UE27 (2020)": df["gdp_pc_pt"],
+        "Portugal vs. Alemanha": df["gdp_pc_pt"] / df["gdp_pc_de"] * 100,
+    }
+).melt("time", var_name="series", value_name="value")
+
+fig = px.line(
+    df_long,
+    x="time",
+    y="value",
+    color="series",
+    title="Portugal: PIB per capita relativo",
+    template="plotly_white",
+    color_discrete_map={
+        "Portugal vs. UE27 (2020)": "blue",
+        "Portugal vs. Alemanha": "red",
+    },
+    markers=True,
+    line_shape="spline",
+)
+fig.update_traces(line_width=2.5, marker_size=6, marker_color="white", marker_symbol="circle", marker_line_width=2)
+fig.update_layout(
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(x=0.6, y=0.99, xanchor="left", yanchor="top", bgcolor="rgba(0,0,0,0)", borderwidth=0),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M60", tickformat="%Y", hoverformat="%Y-%m-%d")
+fig.update_yaxes(tickformat=".1f", ticksuffix="%")
+fig.show()
+
+```
+
+**Leitura económica:**
+
+- Portugal permanece abaixo da média da UE27, embora com períodos de aproximação.
+- A comparação com a Alemanha evidencia um diferencial de produtividade persistente, com alguma aproximação nos útlimos anos.
+
+## Nota final
+
+As séries apresentadas ajudam a construir uma leitura integrada da economia portuguesa: ciclo real, inflação, mercado de trabalho, setor externo e finanças públicas. Este enquadramento será útil para interpretar acontecimentos históricos e discutir políticas económicas.

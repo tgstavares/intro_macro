@@ -1,0 +1,21 @@
+project:
+  type: website
+  output-dir: docs
+  resources:
+    - .nojekyll
+  render:
+    - index.qmd
+    - 01_portugal_eurostat.qmd
+
+website:
+  title: "Economia — Dados"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Início
+      - href: 01_portugal_eurostat.qmd
+        text: Portugal (Eurostat)
+
+format:
+  html:
+    theme: cosmo

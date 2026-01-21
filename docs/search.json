@@ -1,0 +1,79 @@
+[
+  {
+    "objectID": "01_portugal_eurostat.html",
+    "href": "01_portugal_eurostat.html",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "",
+    "text": "Este documento reúne um conjunto de indicadores macroeconómicos para caracterizar a economia portuguesa. O foco está na leitura económica das séries (níveis, ciclos e tendências), deixando o detalhe técnico do código em segundo plano.\n\n\nEste ficheiro é um documento Quarto, que combina texto, figuras e código num único relatório reprodutível.\nRequisitos\n\nQuarto instalado.\nPython com as bibliotecas pandas, requests, plotly e jupyter-cache.\n\nComo executar\n\nTerminal: quarto render portugal_eurostat.qmd (gera o HTML).\nPré-visualização: quarto preview portugal_eurostat.qmd (abre um servidor local).\n\nVantagens para os estudantes\n\nTransparência: as figuras são geradas a partir de dados oficiais e atualizáveis.\nReprodutibilidade: qualquer pessoa pode regenerar os resultados.\nIntegração: texto, dados e gráficos num único fluxo de trabalho."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#introdução",
+    "href": "01_portugal_eurostat.html#introdução",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "",
+    "text": "Este documento reúne um conjunto de indicadores macroeconómicos para caracterizar a economia portuguesa. O foco está na leitura económica das séries (níveis, ciclos e tendências), deixando o detalhe técnico do código em segundo plano.\n\n\nEste ficheiro é um documento Quarto, que combina texto, figuras e código num único relatório reprodutível.\nRequisitos\n\nQuarto instalado.\nPython com as bibliotecas pandas, requests, plotly e jupyter-cache.\n\nComo executar\n\nTerminal: quarto render portugal_eurostat.qmd (gera o HTML).\nPré-visualização: quarto preview portugal_eurostat.qmd (abre um servidor local).\n\nVantagens para os estudantes\n\nTransparência: as figuras são geradas a partir de dados oficiais e atualizáveis.\nReprodutibilidade: qualquer pessoa pode regenerar os resultados.\nIntegração: texto, dados e gráficos num único fluxo de trabalho."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#dados-e-notas-metodológicas",
+    "href": "01_portugal_eurostat.html#dados-e-notas-metodológicas",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "2 Dados e notas metodológicas",
+    "text": "2 Dados e notas metodológicas\n\nAs séries são obtidas via API do Eurostat e são, sempre que disponível, ajustadas sazonalmente.\nO PIB trimestral é anualizado multiplicando por 4, para facilitar a comparação com valores anuais.\nAs percentagens são apresentadas com ponto decimal (por exemplo, 2.5%)."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#atividade-económica",
+    "href": "01_portugal_eurostat.html#atividade-económica",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "3 Atividade económica",
+    "text": "3 Atividade económica\nO PIB real mostra o comportamento do ciclo económico, enquanto o PIB nominal agrega também os efeitos de preços. A comparação entre ambos ajuda a separar crescimento real de inflação.\n\n\n\n\n                            \n                                            \n\n\nFigura 1: PIB real e nominal (trimestral anualizado).\n\n\n\n\nComo alterar o ano base usando o deflator (passo a passo). Partimos do PIB nominal \\(Y_t^{nom}\\) e do PIB real \\(Y_t^{real}\\).\n\nCalcule o deflator implícito: \\[\nP_t = \\frac{Y_t^{nom}}{Y_t^{real}}.\n\\]\nEscolha o ano base \\(b\\) e altere a normalização do deflator: \\[\nP_t^{(b)} = 100 \\cdot \\frac{P_t}{P_b}.\n\\]\nRe-expresse o PIB real a preços do ano \\(b\\): \\[\nY_t^{real,(b)} = \\frac{100 \\cdot Y_t^{nom}}{P_t^{(b)}}.\n\\] Assim, \\(Y_t^{real,(b)}\\) fica em preços do novo ano base e é comparável ao longo do tempo.\n\nLeitura económica:\n\nA recessão de 2008-2013 é claramente visível no PIB real, com recuperação gradual no período seguinte.\nO PIB nominal cresce mais rapidamente em fases de inflação mais elevada, ampliando o desfasamento face ao PIB real."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#preços-e-inflação",
+    "href": "01_portugal_eurostat.html#preços-e-inflação",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "4 Preços e inflação",
+    "text": "4 Preços e inflação\nA inflação é analisada com duas medidas: o IHPC (preços no consumo) e o deflator do PIB (preços na produção interna). Para medir a variação homóloga usa‑se, por exemplo, \\[\n\\pi_t^{\\text{hom}} = \\left(\\frac{P_t}{P_{t-12}} - 1\\right)\\cdot 100,\n\\] onde \\(P_t\\) é o índice de preços no mês \\(t\\). Esta comparação com o mesmo mês do ano anterior reduz a influência da sazonalidade (saldos, férias, energia) e facilita a leitura das tendências.\nNota sobre sazonalidade. O IHPC não é, em geral, divulgado em versão dessazonalizada. Para analisar variações em cadeia (mês‑a‑mês) ignorando os efeitos da sazonalidade nos preços é necessário dessazonalizar a série. O Eurostat, por exemplo, use o método econométrico TRAMO/SEATS para esse fim.\nIHPC vs. deflator do PIB. O IHPC mede a evolução do custo do cabaz de consumo das famílias, incluindo bens importados. Já o deflator do PIB reflete os preços de toda a produção interna (bens e serviços produzidos no país). Por isso, choques externos — como energia ou bens importados — podem elevar o IHPC sem o mesmo impacto no deflator, e alterações nos preços de bens exportados podem afetar o deflator sem mexer diretamente no IHPC.\nIPC vs. IHPC (nota breve). O IPC é o índice nacional de preços no consumidor; o IHPC segue uma metodologia harmonizada na UE para garantir comparabilidade entre países. As diferenças são geralmente pequenas, mas refletem regras comuns de cobertura e ponderação.\n\n\n\n\n                            \n                                            \n\n\nFigura 2: IHPC e deflator do PIB (níveis e variação homóloga).\n\n\n\n\nLeitura económica:\n\nO IHPC capta a inflação sentida pelos consumidores, enquanto o deflator do PIB inclui os preços de toda a produção interna.\nEm períodos de choques externos (energia, importações), o IHPC pode divergir do deflator."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#mercado-de-trabalho",
+    "href": "01_portugal_eurostat.html#mercado-de-trabalho",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "5 Mercado de trabalho",
+    "text": "5 Mercado de trabalho\nA taxa de desemprego e as taxas de emprego mostram a evolução do mercado de trabalho e a sua resposta ao ciclo económico.\nEm termos simples, a taxa de desemprego é \\[\nu_t = \\frac{U_t}{L_t}\\cdot 100,\n\\] onde \\(U_t\\) é o número de desempregados e \\(L_t\\) é a força de trabalho (empregados \\(E_t\\) mais desempregados \\(U_t\\)). A taxa de emprego é \\[\ne_t = \\frac{E_t}{P_t}\\cdot 100,\n\\] onde \\(E_t\\) é o número de empregados e \\(P_t\\) é a população do grupo etário considerado.\n\n\n\n\n                            \n                                            \n\n\nFigura 3: Mercado de trabalho: desemprego e emprego.\n\n\n\n\nLeitura económica:\n\nA crise financeira levou a um pico de desemprego no início da década de 2010.\nO período pós-2014 mostra recuperação do emprego, com melhoria gradual das taxas de participação."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#finanças-públicas",
+    "href": "01_portugal_eurostat.html#finanças-públicas",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "6 Finanças públicas",
+    "text": "6 Finanças públicas\nNesta secção olhamos para duas variáveis centrais das contas públicas: o saldo orçamental (B9) e a dívida pública (GD), ambos em percentagem do PIB. Esta normalização facilita a comparação ao longo do tempo e ajuda a perceber a sustentabilidade das finanças públicas.\nUm ponto importante é distinguir fluxos e stocks. O saldo orçamental mede um fluxo (receitas menos despesas ao longo do ano), enquanto a dívida é um stock (o valor acumulado num determinado momento). Por isso, a variação anual da dívida não coincide necessariamente com o saldo. O Eurostat contabiliza essa diferença através do ajustamento stock‑fluxo, \\(SFA_t\\), que capta operações e efeitos que alteram o stock de dívida sem passarem diretamente pelo défice/excedente (por exemplo, aquisição/venda de ativos, privatizações, reavaliações e outros ajustamentos).\nPara fixar ideias, definimos \\(D_t\\) como o stock de dívida nominal, \\(Y_t\\) como o PIB nominal, \\(d_t = D_t/Y_t\\), \\(B9_t\\) como o saldo orçamental (positivo em excedente) e \\(g_t\\) como o crescimento nominal do PIB, com \\(Y_t = Y_{t-1}(1+g_t)\\). A identidade nominal de acumulação da dívida é: \\[\nD_t = D_{t-1} - B9_t + SFA_t.\n\\]\nDividindo por \\(Y_t\\) e reorganizando (com \\(b9_t = B9_t/Y_t\\) e \\(sfa_t = SFA_t/Y_t\\)), obtemos a variação exata da dívida em percentagem do PIB: \\[\n\\Delta d_t = -b9_t + sfa_t - \\frac{g_t}{1+g_t}\\, d_{t-1}.\n\\]\nEm termos simples: um excedente (maior \\(b9_t\\)) reduz a dívida/PIB, um \\(SFA_t\\) positivo tende a aumentá‑la, e um maior crescimento nominal (\\(g_t\\)) reduz \\(d_t\\) por “diluição” do denominador.\n\n\n\n\n                            \n                                            \n\n\nFigura 4: Saldo orçamental e dívida pública (% do PIB).\n\n\n\n\nLeitura económica:\n\nO aumento da dívida pública é sobretudo visível após a crise financeira e durante episódios de choque macroeconómico.\nA transição para excedentes orçamentais em alguns anos recentes indica consolidação fiscal."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#setor-externo",
+    "href": "01_portugal_eurostat.html#setor-externo",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "7 Setor externo",
+    "text": "7 Setor externo\nO setor externo descreve as relações económicas de Portugal com o resto do mundo: quanto exportamos, quanto importamos e como é financiado o diferencial. Numa economia pequena e aberta, estas contas são particularmente informativas porque ajudam a perceber (i) a dependência de procura externa, (ii) a vulnerabilidade a choques de preços internacionais e (iii) a necessidade (ou não) de financiamento externo.\nAo longo do documento, apresentamos as séries em percentagem do PIB, isto é, normalizamos por \\(Y_t\\). Isto permite comparar períodos diferentes sem ficar “preso” ao tamanho absoluto da economia.\n\n7.1 Exportações e importações\nComeçamos por uma medida simples de abertura: as exportações \\(X_t\\) e as importações \\(M_t\\) (de bens e serviços) em percentagem do PIB. O diferencial corresponde ao saldo de bens e serviços (ou “exportações líquidas”): \\[\nnx_t = \\left(\\frac{X_t - M_t}{Y_t}\\right)\\cdot 100.\n\\] Na figura, a área sombreada entre as duas linhas indica precisamente esse diferencial: azul quando \\(X_t \\ge M_t\\) e vermelho quando \\(X_t &lt; M_t\\).\n\n\n\n\n                            \n                                            \n\n\nFigura 5: Exportações e importações (% do PIB).\n\n\n\n\n\n\n7.2 Conta corrente e conta de capital\nO comércio de bens e serviços é apenas uma parte do saldo externo. Na balança de pagamentos, a conta corrente agrega (i) bens, (ii) serviços, (iii) rendimento primário (por exemplo, juros e lucros) e (iv) rendimento secundário (transferências correntes). A conta de capital é normalmente menor, mas contribui para o saldo global. Em termos simples: \\[\n\\text{saldo total} = \\text{conta corrente} + \\text{conta de capital}.\n\\] No gráfico seguinte, as barras mostram as componentes (em % do PIB), com valores positivos acima de zero e negativos abaixo; a linha preta representa o saldo total.\n\n\n\n\n                            \n                                            \n\n\nFigura 6: Conta corrente (componentes) e conta de capital (% do PIB).\n\n\n\n\nLeitura económica:\n\nUm saldo externo positivo (sumatório da conta corrente com a conta de capital) significa que, nesse período, Portugal é credor líquido face ao resto do mundo; um saldo negativo indica necessidade de financiamento externo.\nA decomposição em conta corrente ajuda a separar o que vem do comércio internacional (bens e serviços) e do que vem de rendimentos e transferências.\nEm economias como a portuguesa, é comum o saldo das transacções de serviços contribuir positivamente e compensar, pelo menos em parte, o saldo das transacções de bens."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#convergência-de-rendimento",
+    "href": "01_portugal_eurostat.html#convergência-de-rendimento",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "8 Convergência de rendimento",
+    "text": "8 Convergência de rendimento\nO PIB per capita de Portugal é mostrado em percentagem da média da UE27 (2020). Para comparação, também é apresentado o rácio face à Alemanha.\n\n\n\n\n                            \n                                            \n\n\nFigura 7: PIB per capita relativo (UE27=100).\n\n\n\n\nLeitura económica:\n\nPortugal permanece abaixo da média da UE27, embora com períodos de aproximação.\nA comparação com a Alemanha evidencia um diferencial de produtividade persistente, com alguma aproximação nos útlimos anos."
+  },
+  {
+    "objectID": "01_portugal_eurostat.html#nota-final",
+    "href": "01_portugal_eurostat.html#nota-final",
+    "title": "Portugal — Algumas estatísticas macroeconómicas",
+    "section": "9 Nota final",
+    "text": "9 Nota final\nAs séries apresentadas ajudam a construir uma leitura integrada da economia portuguesa: ciclo real, inflação, mercado de trabalho, setor externo e finanças públicas. Este enquadramento será útil para interpretar acontecimentos históricos e discutir políticas económicas."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Economia — Dados",
+    "section": "",
+    "text": "Este site reúne alguns relatórios e notebooks usados nas aulas.\n\nPortugal — Algumas estatísticas macroeconómicas (Eurostat)\nCódigo (fonte): 01_portugal_eurostat.qmd\nNotebook: 01_Dataset_figures.ipynb"
+  }
+]

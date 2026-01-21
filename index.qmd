@@ -1,0 +1,10 @@
+---
+title: "Economia — Dados"
+lang: pt-PT
+---
+
+Este site reúne alguns relatórios e notebooks usados nas aulas.
+
+- [Portugal — Algumas estatísticas macroeconómicas (Eurostat)](01_portugal_eurostat.qmd)
+- Código (fonte): `01_portugal_eurostat.qmd`
+- Notebook: `01_Dataset_figures.ipynb`
