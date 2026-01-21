@@ -1,5 +1,5 @@
 ---
-title: "Portugal — Algumas estatísticas macroeconómicas"
+title: "Portugal: Algumas estatísticas macroeconómicas"
 subtitle: "Fonte principal: Eurostat"
 lang: pt-PT
 jupyter: py313
@@ -45,7 +45,7 @@ Este ficheiro é um documento **Quarto**, que combina texto, figuras e código n
 
 - As séries são obtidas via API do Eurostat e são, sempre que disponível, **ajustadas sazonalmente**.
 - O PIB trimestral é **anualizado** multiplicando por 4, para facilitar a comparação com valores anuais.
-- As percentagens são apresentadas com ponto decimal (por exemplo, 2.5%).
+
 
 ```{python}
 #| label: setup

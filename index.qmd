@@ -1,7 +1,25 @@
 ---
 title: "Introdução à Macroeconomia"
 lang: pt-PT
+format:
+  html:
+    css: styles-index.css
 ---
+
+<div class="paper-figures">
+  <figure>
+    <img src="figs/hicks-1937-fig1.png" alt="Hicks (1937), Figure 1" />
+    <figcaption>Hicks (1937), Fig. 1</figcaption>
+  </figure>
+  <figure>
+    <img src="figs/solow-1956-fig1.png" alt="Solow (1956), Figure 1" />
+    <figcaption>Solow (1956), Fig. 1</figcaption>
+  </figure>
+  <figure>
+    <img src="figs/phillips-1958-fig1.png" alt="Phillips (1958), Figure 1" />
+    <figcaption>Phillips (1958), Fig. 1</figcaption>
+  </figure>
+</div>
 
 Este site reúne alguns relatórios e notebooks usados nas aulas de Introdução à Macroeconomia.
 
