@@ -1,10 +1,12 @@
 ---
-title: "Introdução à Macroeconomia: Dados e Estatísticas de Portugal"
+title: "Introdução à Macroeconomia"
 lang: pt-PT
 ---
 
-Este site reúne alguns relatórios e notebooks usados nas aulas.
+Este site reúne alguns relatórios e notebooks usados nas aulas de Introdução à Macroeconomia.
 
-- [Portugal — Algumas estatísticas macroeconómicas (Eurostat)](01_portugal_eurostat.qmd)
-- Código (fonte): `01_portugal_eurostat.qmd`
-- Notebook: `01_Dataset_figures.ipynb`
+1. [Portugal: algumas estatísticas macroeconómicas](01_portugal_eurostat.qmd)
+    - Código-fonte: `01_portugal_eurostat.qmd`
+    - Notebook auxiliar: `01_Dataset_figures.ipynb`
+
+2. Contas nacionais
