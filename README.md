@@ -5,9 +5,11 @@ Este repositório publica documentos (HTML) gerados com **Quarto** e respetivos 
 ## Ver online (GitHub Pages)
 
 O sítio de acesso está [disponível](https://tgstavares.github.io/intro_macro/) em:
+
 `https://tgstavares.github.io/intro_macro/`
 
 E o código-fonte pode ser consultado neste mesmo [repositório](https://github.com/tgstavares/intro_macro):
+
 `https://github.com/tgstavares/intro_macro`
 
 ## Autoria e contactos
