@@ -1,5 +1,5 @@
 ---
-title: "Economia — Dados"
+title: "Introdução à Macroeconomia: Dados e Estatísticas de Portugal"
 lang: pt-PT
 ---
 

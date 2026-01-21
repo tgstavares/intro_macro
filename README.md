@@ -1,6 +1,6 @@
 # Intro Macro — Dados (Quarto)
 
-Este repositório publica relatórios (HTML) gerados com **Quarto** e o respetivo código-fonte (`.qmd` / `.ipynb`).
+Este repositório publica documentos (HTML) gerados com **Quarto** e o respetivo código-fonte (`.qmd` / `.ipynb`).
 
 ## Ver online (GitHub Pages)
 

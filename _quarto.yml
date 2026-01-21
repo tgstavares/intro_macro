@@ -8,7 +8,7 @@ project:
     - 01_portugal_eurostat.qmd
 
 website:
-  title: "Economia — Dados"
+  title: "Introdução à Macroeconomia: Dados e Estatísticas de Portugal"
   navbar:
     left:
       - href: index.qmd
