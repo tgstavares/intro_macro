@@ -72,8 +72,8 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "Introdução à Macroeconomia: Dados e Estatísticas de Portugal",
+    "title": "Introdução à Macroeconomia",
     "section": "",
-    "text": "Este site reúne alguns relatórios e notebooks usados nas aulas.\n\nPortugal — Algumas estatísticas macroeconómicas (Eurostat)\nCódigo (fonte): 01_portugal_eurostat.qmd\nNotebook: 01_Dataset_figures.ipynb"
+    "text": "Este site reúne alguns relatórios e notebooks usados nas aulas de Introdução à Macroeconomia.\n\nPortugal: algumas estatísticas macroeconómicas\n\nCódigo-fonte: 01_portugal_eurostat.qmd\nNotebook auxiliar: 01_Dataset_figures.ipynb\n\nContas nacionais"
   }
 ]

@@ -9,12 +9,7 @@ project:
 
 website:
   title: "Introdução à Macroeconomia: Dados e Estatísticas de Portugal"
-  navbar:
-    left:
-      - href: index.qmd
-        text: Início
-      - href: 01_portugal_eurostat.qmd
-        text: Portugal (Eurostat)
+  navbar: false
 
 format:
   html:
