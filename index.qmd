@@ -1,5 +1,6 @@
 ---
 title: "Introdução à Macroeconomia"
+subtitle: "[Tiago Tavares](http://tgstavares.com/) (Universidade do Minho)"
 lang: pt-PT
 format:
   html:
@@ -9,22 +10,24 @@ format:
 <div class="paper-figures">
   <figure>
     <img src="figs/hicks-1937-fig1.png" alt="Hicks (1937), Figure 1" />
-    <figcaption>Hicks (1937), Fig. 1</figcaption>
+    <figcaption><a href="https://www.jstor.org/stable/1907242">Hicks (1937)</a></figcaption>
   </figure>
   <figure>
     <img src="figs/solow-1956-fig1.png" alt="Solow (1956), Figure 1" />
-    <figcaption>Solow (1956), Fig. 1</figcaption>
+    <figcaption><a href="https://www.jstor.org/stable/1884513">Solow (1956)</a></figcaption>
   </figure>
   <figure>
     <img src="figs/phillips-1958-fig1.png" alt="Phillips (1958), Figure 1" />
-    <figcaption>Phillips (1958), Fig. 1</figcaption>
+    <figcaption><a href="https://www.jstor.org/stable/2550759">Phillips (1958)</a></figcaption>
   </figure>
 </div>
+
+# Lista de conteúdos
 
 Este site reúne alguns relatórios e notebooks usados nas aulas de Introdução à Macroeconomia.
 
 1. [Portugal: algumas estatísticas macroeconómicas](01_portugal_eurostat.qmd)
-    - Código-fonte: `01_portugal_eurostat.qmd`
-    - Notebook auxiliar: `01_Dataset_figures.ipynb`
+    - Código-fonte (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/01_portugal_eurostat.qmd>
+    - Notebook auxiliar (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/01_Dataset_figures.ipynb>
 
-2. Contas nacionais
+2. Contas nacionais (LATER)

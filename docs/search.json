@@ -74,6 +74,6 @@
     "href": "index.html",
     "title": "Introdução à Macroeconomia",
     "section": "",
-    "text": "Hicks (1937), Fig. 1\n\n\n\n\n\nSolow (1956), Fig. 1\n\n\n\n\n\nPhillips (1958), Fig. 1\n\n\n\nEste site reúne alguns relatórios e notebooks usados nas aulas de Introdução à Macroeconomia.\n\nPortugal: algumas estatísticas macroeconómicas\n\nCódigo-fonte: 01_portugal_eurostat.qmd\nNotebook auxiliar: 01_Dataset_figures.ipynb\n\nContas nacionais"
+    "text": "Hicks (1937)\n\n\n\n\n\nSolow (1956)\n\n\n\n\n\nPhillips (1958)\n\n\n\n\nLista de conteúdos\nEste site reúne alguns relatórios e notebooks usados nas aulas de Introdução à Macroeconomia.\n\nPortugal: algumas estatísticas macroeconómicas\n\nCódigo-fonte (GitHub): https://github.com/tgstavares/intro_macro/blob/main/01_portugal_eurostat.qmd\nNotebook auxiliar (GitHub): https://github.com/tgstavares/intro_macro/blob/main/01_Dataset_figures.ipynb\n\nContas nacionais (LATER)"
   }
 ]
