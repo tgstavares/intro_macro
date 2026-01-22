@@ -1,6 +1,6 @@
 ---
 title: "Introdução à Macroeconomia"
-subtitle: "[Tiago Tavares](http://tgstavares.com/) (Universidade do Minho)"
+subtitle: "[Tiago Tavares](http://tgstavares.com/) e [Francisco Veiga](https://sites.google.com/view/fjveiga/)"
 lang: pt-PT
 format:
   html:
@@ -30,4 +30,4 @@ Este site reúne alguns relatórios e notebooks usados nas aulas de Introdução
     - Código-fonte (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/01_portugal_eurostat.qmd>
     - Notebook auxiliar (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/01_Dataset_figures.ipynb>
 
-2. Contas nacionais (LATER)
+2. Contas nacionais [LATER]
