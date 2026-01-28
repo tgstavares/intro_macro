@@ -31,3 +31,8 @@ quarto.sh
 
 /.quarto/
 **/*.quarto_ipynb
+
+
+
+.~*#
+*.xlsx
