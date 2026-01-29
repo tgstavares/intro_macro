@@ -1,5 +1,5 @@
 ---
-title: "Portugal: estatísticas e contas nacionais"
+title: "Portugal: contas nacionais e macroeconomia"
 subtitle: "Fontes principais: Eurostat e OECD"
 lang: pt-PT
 jupyter: py313
@@ -19,11 +19,14 @@ execute:
 
 ## Introdução
 
-Este documento complementa as estatísticas macroeconómicas com foco em:
+Este documento complementa as estatísticas macroeconómicas para Portugal com foco em:
 
 - **Contas nacionais** e as três óticas do PIB (despesa, produção e rendimento).
 - **Parte do trabalho** no rendimento agregado (labor share).
-- **Matrizes de entradas-saídas** (input-output) da OECD, agregadas para setores largos.
+- **Matrizes de entradas-saídas** (input-output) da OECD, com agregação setorial, cálculo de agregados e discussão de **pesos de Domar** e do **teorema de Hulten**.
+- **Relações macroeconómicas**: **Lei de Okun** e **Curva de Phillips** (IHPC total e inflação subjacente).
+
+Os dados são obtidos (quando possível) diretamente da API do **Eurostat** e de ficheiros da **OECD**, e as tabelas/figuras são geradas automaticamente a partir do código incluído no documento.
 
 ```{python}
 #| label: setup

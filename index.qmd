@@ -30,7 +30,7 @@ Este site reúne alguns relatórios e notebooks usados nas aulas de Introdução
     - Código-fonte (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/01_portugal_eurostat.qmd>
     - Notebook auxiliar (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/01_Dataset_figures.ipynb>
 
-2. [Portugal: relações macroeconómicas e contas nacionais](02_portugal_contas_nacionais_plus.qmd)
+2. [Portugal: contas nacionais e macroeconomia](02_portugal_contas_nacionais_plus.qmd)
     - Código-fonte (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/02_portugal_contas_nacionais_plus.qmd>
     - Notebook principal (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/02_National_accounts_PT.ipynb>
 
