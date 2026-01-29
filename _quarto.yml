@@ -6,6 +6,7 @@ project:
   render:
     - index.qmd
     - 01_portugal_eurostat.qmd
+    - 02_portugal_contas_nacionais_plus.qmd
 
 website:
   title: "Introdução à Macroeconomia: Dados e Estatísticas de Portugal"

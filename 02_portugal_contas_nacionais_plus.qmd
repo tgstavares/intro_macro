@@ -1,0 +1,1771 @@
+---
+title: "Portugal: estatísticas e contas nacionais"
+subtitle: "Fontes principais: Eurostat e OECD"
+lang: pt-PT
+jupyter: py313
+format:
+  html:
+    toc: true
+    toc-location: left
+    number-sections: true
+    theme: cosmo
+    from: markdown+tex_math_single_backslash
+execute:
+  echo: false
+  warning: false
+  message: false
+  cache: true
+---
+
+## Introdução
+
+Este documento complementa as estatísticas macroeconómicas com foco em:
+
+- **Contas nacionais** e as três óticas do PIB (despesa, produção e rendimento).
+- **Parte do trabalho** no rendimento agregado (labor share).
+- **Matrizes de entradas-saídas** (input-output) da OECD, agregadas para setores largos.
+
+```{python}
+#| label: setup
+#| include: false
+import io
+import re
+import zipfile
+
+import pandas as pd
+import requests
+import plotly.express as px
+import plotly.graph_objects as go
+
+def eurostat_series(dataset, params, freq, value_name="value"):
+    params = dict(params)
+    params["format"] = "JSON"
+    EUROSTAT_BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
+    try:
+        r = requests.get(f"{EUROSTAT_BASE}/{dataset}", params=params, timeout=30)
+        if "sorry.ec.europa.eu" in r.url:
+            raise ConnectionError(
+                "Eurostat API unavailable (redirected to sorry.ec.europa.eu)."
+            )
+        r.raise_for_status()
+        j = r.json()
+    except (requests.RequestException, ValueError) as exc:
+        raise ConnectionError(
+            "Eurostat API unavailable or returned invalid JSON."
+        ) from exc
+
+    time_index = j["dimension"]["time"]["category"]["index"]
+    values = j.get("value", {})
+    df = (
+        pd.DataFrame(
+            [(t, values.get(str(i))) for t, i in time_index.items()],
+            columns=["period", value_name],
+        )
+        .dropna()
+        .sort_values("period")
+    )
+
+    periods = df.pop("period").astype(str)
+    if freq == "M":
+        periods = periods.str.replace(r"^(\d{4})M(\d{2})$", r"\1-\2", regex=True)
+
+    df["time"] = pd.PeriodIndex(periods, freq=freq).to_timestamp(how="end").normalize()
+    return df.reset_index(drop=True)
+
+
+def eurostat_components(dataset, base_params, items, freq, dim="na_item", how="inner"):
+    if isinstance(items, (list, tuple)):
+        items = {item: item for item in items}
+    frames = []
+    for item_code, col_name in items.items():
+        params = dict(base_params, **{dim: item_code})
+        frames.append(eurostat_series(dataset, params, freq, value_name=col_name))
+    if not frames:
+        return pd.DataFrame(columns=["time"])
+    df = frames[0]
+    for frame in frames[1:]:
+        df = df.merge(frame, on="time", how=how)
+    return df.sort_values("time").reset_index(drop=True)
+```
+
+```{python}
+#| label: dados-contas-nacionais
+#| include: false
+base_params = dict(geo="PT", unit="CP_MEUR")
+
+# PIB e componentes (anual, preços correntes)
+components = [
+    "B1GQ",
+    # Despesa
+    "P31_S14_S15",
+    "P31_S13",
+    "P32_S13",
+    "P51G",
+    "P52_P53",
+    "P6",
+    "P7",
+    # Rendimento
+    "D1",
+    "B2A3G",
+    "D2",
+    "D3",
+    # Produção
+    "B1G",
+    "D21",
+    "D31",
+]
+
+y = eurostat_components("nama_10_gdp", base_params, components, freq="Y")
+
+# Erros/omissões implícitos (devem ser ~0 em identidades consistentes)
+y["gdp_eo_exp"] = y["B1GQ"] - (
+    y["P31_S14_S15"]
+    + y["P31_S13"]
+    + y["P32_S13"]
+    + y["P51G"]
+    + y["P52_P53"]
+    + y["P6"]
+    - y["P7"]
+)
+y["gdp_eo_inc"] = y["B1GQ"] - (y["D1"] + y["B2A3G"] + y["D2"] - y["D3"])
+y["gdp_eo_prod"] = y["B1GQ"] - (y["B1G"] + y["D21"] - y["D31"])
+
+# VAB por NACE (B1G) para a ótica da produção
+nace_components = ["TOTAL", "A", "B-E", "F", "G-I", "J", "K", "L", "M_N", "O-Q", "R-U"]
+b1g_by_nace = eurostat_components(
+    "nama_10_a10",
+    dict(base_params, na_item="B1G"),
+    nace_components,
+    freq="Y",
+    dim="nace_r2",
+    how="outer",
+)
+```
+
+## Contas nacionais: Produto interno bruto
+
+O **Produto Interno Bruto (PIB)** mede o valor da produção final gerada **no território** num período. O mesmo agregado pode ser obtido de três formas equivalentes (a preços de mercado):
+
+- **Despesa**: quem compra o produto final (consumo, investimento e saldo externo).
+- **Produção**: quem produz (valor acrescentado por setor + impostos líquidos sobre produtos).
+- **Rendimento**: quem recebe o rendimento gerado (trabalho, capital/rendimento misto + impostos líquidos).
+
+As identidades contabilísticas podem ser escritas como:
+
+$$
+\begin{aligned}
+\text{(Despesa)}\quad Y &= C + G + I + (X - M) \\\\
+\text{(Produção)}\quad Y &= \sum_i VA_i + (T_{\text{produto}} - S_{\text{produto}}) \\\\
+\text{(Rendimento)}\quad Y &= W + \Pi + (T_{\text{produção}} - S_{\text{produção}})
+\end{aligned}
+$$
+
+onde:
+
+- $Y$: PIB (a preços de mercado).
+- $C$: consumo final privado (famílias e ISFLSF).
+- $G$: consumo final público (administrações públicas).
+- $I$: investimento (formação bruta de capital fixo, FBCF, e variação de existências).
+- $X$ e $M$: exportações e importações de bens e serviços.
+- $VA_i$: valor acrescentado do setor $i$ (produção menos consumo intermédio).
+- $W$: remunerações dos empregados.
+- $\Pi$: excedente de exploração e rendimento misto (remuneração do capital e do trabalho por conta própria, em termos agregados).
+- $T_{\text{produto}}, S_{\text{produto}}$: impostos e subsídios (líquidos) sobre produtos, que fazem a ponte entre preços de base e preços de mercado.
+- $T_{\text{produção}}, S_{\text{produção}}$: impostos e subsídios (líquidos) sobre a produção.
+
+As três óticas coincidem porque toda a despesa sobre um bem final corresponde ao valor do produto final vendido; esse valor é produção interna (valor acrescentado) ou importações, e o valor acrescentado é distribuído como rendimentos primários e impostos líquidos. Na prática pode existir uma pequena **discrepância estatística** e revisões.
+
+### Despesa
+
+Na identidade $Y = C + G + I + (X - M)$, o termo $-M$ (importações) não deve ser lido como “uma despesa negativa que reduz o PIB”. É uma **correção contabilística de origem**: $C$, $G$ e $I$ medem despesa final (a preços de aquisição) sobre bens e serviços, independentemente de serem produzidos internamente ou importados. Por exemplo, se uma família compra um telemóvel importado, essa compra entra em $C$, mas não corresponde a produção interna; ao subtrair $M$, removemos a parcela importada e ficamos com o valor produzido no país. De forma equivalente, $(C+G+I+X)$ mede a procura final total por bens e serviços; subtrair $M$ isola a parcela produzida internamente.
+
+Por isso, uma subida de $M$ pode ocorrer com $Y$ a subir (por exemplo, numa expansão em que a procura aumenta e as importações são pró‑cíclicas) ou com $Y$ a cair (se importações substituírem produção doméstica, mantendo o resto constante). O ponto central é que $M$ é um ajuste necessário para medir **produção interna**, não um mecanismo causal por si só.
+
+```{python}
+#| label: fig-pib-despesa
+#| fig-cap: "Portugal: componentes do PIB pela ótica da despesa (% do PIB)."
+df = y.dropna(subset=["B1GQ"]).sort_values("time").copy()
+df["public_consumption"] = df["P31_S13"] + df["P32_S13"]
+df["net_exports"] = df["P6"] - df["P7"]
+df["time"] = df["time"] - pd.DateOffset(months=6)
+
+exp_components = [
+    ("P31_S14_S15", "Consumo privado (P31_S14_S15)"),
+    ("public_consumption", "Consumo público (P31_S13+P32_S13)"),
+    ("P51G", "Investimento físico (P51G)"),
+    ("P52_P53", "Variação de exist. e valoraç. (P52_P53)"),
+    ("net_exports", "Exportações líquidas (P6-P7)"),
+]
+
+colors = {
+    "P31_S14_S15": "rgba(37, 99, 235, 0.6)",
+    "public_consumption": "rgba(16, 185, 129, 0.6)",
+    "P51G": "rgba(249, 115, 22, 0.6)",
+    "P52_P53": "rgba(239, 68, 68, 0.6)",
+    "net_exports": "rgba(107, 114, 128, 0.6)",
+}
+
+for col, _ in exp_components:
+    df[f"{col}_share"] = df[col] / df["B1GQ"] * 100
+
+fig = go.Figure()
+for col, label in exp_components:
+    fig.add_trace(
+        go.Bar(
+            x=df["time"],
+            y=df[f"{col}_share"],
+            name=label,
+            marker_color=colors[col],
+        )
+    )
+
+fig.update_layout(
+    barmode="relative",
+    template="plotly_white",
+    title="Portugal: componentes da despesa agregada (% do PIB)",
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(
+        orientation="h",
+        x=0.5,
+        y=-0.1,
+        xanchor="center",
+        yanchor="top",
+        bgcolor="rgba(0,0,0,0)",
+        borderwidth=0,
+    ),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M36", tickformat="%Y", hoverformat="%Y")
+fig.update_yaxes(tickformat=".1f", ticksuffix="%")
+fig
+```
+
+**Leitura económica**
+
+O gráfico mostra as componentes da despesa como percentagem do PIB. Algumas leituras úteis são:
+
+- O **consumo privado** tende a ser a maior parcela e varia menos do que o investimento; mudanças persistentes podem refletir alterações na poupança das famílias.
+- O **investimento** e a **variação de existências** são tipicamente as componentes mais voláteis e amplificam o ciclo económico.
+- As **exportações líquidas** $(X-M)$ podem ser negativas (défice comercial) ou positivas (excedente comercial).
+
+**Nota adicional: imputações de consumo**
+
+Algumas rubricas do consumo são parcialmente **imputadas** (isto é, registadas mesmo sem transação monetária explícita) para manter a comparabilidade ao longo do tempo e entre países com diferentes regimes de propriedade.
+
+O exemplo central é a **renda imputada** da habitação própria. Imagine dois vizinhos, cada um proprietário e ocupante da sua casa, e as casas são equivalentes. Num dado ano, decidem **trocar a propriedade** das casas (A passa a ser dono legal da casa de B e vice‑versa), mas cada um continua a viver exatamente na mesma casa. Para regularizar a situação, assinam contratos de **arrendamento cruzado** pelo mesmo valor.
+
+Do ponto de vista económico, o serviço de habitação consumido por cada família é essencialmente o mesmo; o que mudou foi apenas o estatuto jurídico e a existência de um pagamento observado. Se as contas nacionais só registassem rendas quando há pagamento monetário, esta mudança faria o **consumo medido** (e o **PIB**) aumentar, apesar de não existir mais produção efetiva. A renda imputada evita este tipo de “saltos contabilísticos”: os serviços de habitação dos proprietários‑ocupantes são também contabilizados como consumo (e, simetricamente, como produção e rendimento do setor de habitação), pelo que uma transição entre “proprietário‑ocupante” e “arrendatário” não altera artificialmente o PIB.
+
+No Eurostat, esta componente pode ser vista na desagregação do consumo das famílias por COICOP, na rubrica `CP042` (rendas imputadas da habitação). A contraparte na produção encontra-se em `P.1 + NACE L` (produção de atividades imobiliárias) e no rendimento em `S.14 + B.2g` (excedente bruto de exploração das famílias).
+
+**Porquê não imputar o valor do serviço das refeições preparadas em casa?** Por convenção, o PIB procura medir sobretudo **produção de mercado** (e produção não‑mercado do Estado e de algumas instituições), e **exclui a maior parte dos serviços domésticos** produzidos e consumidos dentro do agregado (cozinhar, limpar, cuidar de crianças, etc.). Imputar refeições feitas em casa exigiria valorar o tempo de trabalho doméstico e o capital doméstico (cozinha, eletrodomésticos), o que é difícil, heterogéneo e pouco comparável entre países e ao longo do tempo. O mesmo acontece com outros serviços domésticos como cuidados, higiene pessoal, transporte, limpeza, etc..
+
+A **habitação própria** é uma exceção porque existe um **equivalente de mercado muito próximo** (o arrendamento), com preços observáveis e grande relevância quantitativa.
+
+Quando se pretende quantificar a produção doméstica (incluindo refeições preparadas em casa), isso é normalmente feito em **contas satélite** em complemento e não como substituto do PIB (ver abordagem do [BEA](https://www.bea.gov/data/special-topics/household-production) nos EUA).
+
+### Produção
+
+Na ótica da produção, o ponto de partida é o **valor acrescentado bruto (VAB)**. A ideia é simples: as vendas de uma empresa são muitas vezes as compras (inputs) de outras empresas. Se somássemos “produção” por setores, contaríamos várias vezes o mesmo bem ao longo da cadeia produtiva. O VAB resolve o problema ao subtrair o **consumo intermédio** (inputs comprados a outras empresas).
+
+De forma esquemática, para um setor $i$ (ou indústria $i$):
+
+$$
+X_i = \sum_{j} Z_{ij} + F_i,
+\qquad
+CI_i = \sum_{j} Z_{ji},
+\qquad
+VAB_i = X_i - CI_i,
+$$
+
+onde $X_i$ é a produção (vendas) do setor $i$, $Z_{ij}$ são as vendas intermédias de $i$ para $j$ (logo, compras intermédias de $j$ a $i$) e $F_i$ é a procura final do bem/serviço do setor $i$. Ao agregar:
+
+$$
+Y_{pb} = VAB = \sum_i VAB_i.
+$$
+
+Este VAB agregado está a **preços de base** (o que o produtor recebe) e, por isso, coincide com o **PIB a preços de base**.
+
+Para obter o **PIB a preços de mercado** (o agregado $Y$ usado acima, o que o comprador paga), somamos os **impostos líquidos sobre produtos**:
+
+$$
+Y_{pm} = VAB + (T_{\text{produto}} - S_{\text{produto}}),
+$$
+
+onde $(T_{\text{produto}} - S_{\text{produto}})$ corresponde, na classificação ESA/Eurostat, a **(D21 - D31)**. Na prática, $T_{\text{produto}}$ (D21) inclui sobretudo o **IVA** e os **impostos especiais de consumo** (por exemplo, combustíveis, tabaco e álcool), além de direitos aduaneiros e outros impostos específicos sobre produtos; $S_{\text{produto}}$ (D31) inclui **subsídios ligados a produtos** (por unidade), por exemplo em alguns programas na agricultura, energia ou transportes.
+
+No gráfico, apresentamos as contribuições setoriais do VAB e os impostos líquidos, como percentagem do PIB.
+
+```{python}
+#| label: fig-pib-producao
+#| fig-cap: "Portugal: componentes do PIB pela ótica da produção (% do PIB)."
+
+df = (
+    b1g_by_nace.merge(
+        y[["time", "B1GQ", "D21", "D31"]],
+        on="time",
+        how="inner",
+    )
+    .sort_values("time")
+    .copy()
+)
+
+df["net_taxes"] = df["D21"] - df["D31"]
+df["time"] = df["time"] - pd.DateOffset(months=6)
+
+sector_components = [c for c in nace_components if c != "TOTAL" and c in df.columns]
+sector_labels = {
+    "A": "Agric., silvic. e pesca (A)",
+    "B-E": "Indústria (B-E)",
+    "F": "Construção (F)",
+    "G-I": "Comércio, transp. e aloj. (G-I)",
+    "J": "Informação e comunicação (J)",
+    "K": "Atividades fin. e de seguros (K)",
+    "L": "Atividades imobiliárias (L)",
+    "M_N": "Atividades prof. e admin. (M_N)",
+    "O-Q": "Admin. púb., educ. e saúde (O-Q)",
+    "R-U": "Artes e outros serviços (R-U)",
+}
+
+components = [(c, sector_labels.get(c, c)) for c in sector_components]
+components.append(("net_taxes", "Impostos líq. nos prod. (D21-D31)"))
+
+palette = [
+    "rgba(37, 99, 235, 0.6)",
+    "rgba(16, 185, 129, 0.6)",
+    "rgba(249, 115, 22, 0.6)",
+    "rgba(239, 68, 68, 0.6)",
+    "rgba(107, 114, 128, 0.6)",
+    "rgba(14, 165, 233, 0.6)",
+    "rgba(168, 85, 247, 0.6)",
+    "rgba(234, 179, 8, 0.6)",
+    "rgba(20, 184, 166, 0.6)",
+    "rgba(236, 72, 153, 0.6)",
+    "rgba(148, 163, 184, 0.6)",
+]
+palette = palette * ((len(components) // len(palette)) + 1)
+colors = {c: palette[i] for i, (c, _) in enumerate(components)}
+
+for col, _ in components:
+    df[f"{col}_share"] = df[col] / df["B1GQ"] * 100
+
+fig = go.Figure()
+for col, label in components:
+    fig.add_trace(
+        go.Bar(
+            x=df["time"],
+            y=df[f"{col}_share"],
+            name=label,
+            marker_color=colors[col],
+        )
+    )
+
+fig.update_layout(
+    barmode="relative",
+    template="plotly_white",
+    title="Portugal: componentes do produto agregado (% do PIB)",
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(
+        orientation="h",
+        x=0.5,
+        y=-0.1,
+        xanchor="center",
+        yanchor="top",
+        #x=1.02,
+        #y=0.5,
+        #xanchor="left",
+        #yanchor="middle",
+        bgcolor="rgba(0,0,0,0)",
+        borderwidth=0,
+    ),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M36", tickformat="%Y", hoverformat="%Y")
+fig.update_yaxes(tickformat=".1f", ticksuffix="%")
+fig
+```
+
+**Leitura económica**
+
+O gráfico decompõe o PIB em contribuições setoriais do VAB (a preços de base) e em impostos líquidos sobre produtos. Algumas leituras úteis são:
+
+- A maior parte do VAB tende a vir de **serviços**.
+- A parte associada à **construção**, **indústria**, e **agricultura** têm registado uma queda ligeira nos últimos tempos.
+- A fatia de **impostos líquidos sobre produtos** mede a diferença entre PIB a preços de mercado e o VAB; mudanças nessa parcela refletem alterações nos impostos/subsídios sobre produtos.
+
+### Rendimento
+
+Na ótica do rendimento, o PIB é visto como a soma do rendimento gerado na produção e distribuído por **trabalho**, **capital** (e trabalho por conta própria) e **Estado**. Em **preços dos fatores** (ou *custo dos fatores*), o produto mede apenas o rendimento pago aos fatores produtivos:
+
+$$
+Y_{fp} = W + \Pi,
+$$
+
+onde $W$ são as **remunerações dos empregados** (D1), que inclui **salários e ordenados** (em dinheiro e em espécie) e **contribuições sociais** a cargo do empregador (incluindo contribuições imputadas); e $\Pi$ é o **excedente bruto de exploração e rendimento misto** (B2A3G). Este último agrega, por um lado, o excedente bruto das sociedades (lucros brutos, isto é, *antes* da depreciação/consumo de capital fixo) e, por outro, o rendimento misto dos trabalhadores por conta própria (onde se mistura remuneração do trabalho e do capital, por exemplo em negócios familiares); inclui também itens como a **renda imputada**.
+
+Para obter o PIB a **preços de mercado** (o $Y$ usado acima), acrescenta-se o diferencial fiscal” entre o que o comprador paga e o que os fatores recebem: os **impostos líquidos sobre a produção e importações**,
+
+$$
+Y_{pm} = Y_{fp} + (T_{\text{produção}} - S_{\text{produção}}),
+$$
+
+que correspondem, na classificação ESA/Eurostat, a **(D2 - D3)** (impostos sobre produtos e outros impostos sobre a produção, menos subsídios).
+
+```{python}
+#| label: fig-pib-rendimento
+#| fig-cap: "Portugal: componentes do PIB pela ótica do rendimento (% do PIB)."
+df = y.dropna(subset=["B1GQ"]).sort_values("time").copy()
+df["D2_D3"] = df["D2"] - df["D3"]
+df["time"] = df["time"] - pd.DateOffset(months=6)
+
+components = [
+    ("D1", "Remuneração dos empregados (D1)"),
+    ("B2A3G", "Excedente bruto de exploração e rendimento misto (B2A3G)"),
+    ("D2_D3", "Impostos líquidos sobre a produção e importações (D2-D3)"),
+]
+
+colors = {
+    "D1": "rgba(37, 99, 235, 0.6)",
+    "B2A3G": "rgba(16, 185, 129, 0.6)",
+    "D2_D3": "rgba(249, 115, 22, 0.6)",
+}
+
+for col, _ in components:
+    df[f"{col}_share"] = df[col] / df["B1GQ"] * 100
+
+fig = go.Figure()
+for col, label in components:
+    fig.add_trace(
+        go.Bar(
+            x=df["time"],
+            y=df[f"{col}_share"],
+            name=label,
+            marker_color=colors[col],
+        )
+    )
+
+fig.update_layout(
+    barmode="relative",
+    template="plotly_white",
+    title="Portugal: componentes do rendimento agregado (% do PIB)",
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(
+        orientation="h",
+        x=0.5,
+        y=-0.1,
+        xanchor="center",
+        yanchor="top",
+        bgcolor="rgba(0,0,0,0)",
+        borderwidth=0,
+    ),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M36", tickformat="%Y", hoverformat="%Y")
+fig.update_yaxes(tickformat=".1f", ticksuffix="%")
+fig
+```
+
+**Leitura económica**
+
+O gráfico mostra a decomposição do PIB por quem recebe o rendimento:
+
+- Uma maior parcela de **D1** significa uma maior **parte do trabalho** (labor share) no rendimento gerado.
+- Uma maior parcela de **B2A3G** reflete maior peso do rendimento do **capital** e do **trabalho por conta própria** (incluindo a renda imputada).
+- A parcela de **(D2-D3)** capta o peso dos **impostos líquidos** na diferença entre preços dos fatores e preços de mercado.
+
+### Últimas décadas
+
+A tabela seguinte resume, para anos selecionados, as principais componentes das três óticas em **% do PIB** e indica os códigos utilizados. É uma forma rápida de comparar como a composição do PIB mudou ao longo do tempo.
+
+```{python}
+#| label: tabela-componentes-selecionados
+#| tbl-cap: "Componentes do PIB (% do PIB) em anos selecionados."
+# Summary table for selected years
+
+years = [2004, 2014, 2024]
+
+
+def series_by_year(df, col, years):
+    tmp = df.copy()
+    tmp["year"] = tmp["time"].dt.year
+    tmp = tmp[tmp["year"].isin(years)]
+    return tmp.set_index("year")[col].reindex(years)
+
+
+def add_row(rows, approach, name, code, values, years):
+    row = {
+        "Abordagem": approach,
+        "Componente": name,
+        "Código": code,
+    }
+    for yr in years:
+        row[str(yr)] = values.loc[yr]
+    rows.append(row)
+
+
+gdp_series = series_by_year(y[["time", "B1GQ"]], "B1GQ", years)
+
+rows = []
+#add_row(rows, "-", "PIB a preços correntes", "B1GQ", gdp_series, years)
+
+exp_df = y[
+    [
+        "time",
+        "B1GQ",
+        "P31_S14_S15",
+        "P31_S13",
+        "P32_S13",
+        "P51G",
+        "P52_P53",
+        "P6",
+        "P7",
+    ]
+].copy()
+exp_df["public_consumption"] = exp_df["P31_S13"] + exp_df["P32_S13"]
+exp_df["net_exports"] = exp_df["P6"] - exp_df["P7"]
+
+exp_components = [
+    ("P31_S14_S15", "Consumo privado", "P31_S14_S15"),
+    ("public_consumption", "Consumo público", "P32_S13+P31_S13"),
+    ("P51G", "Investimento físico", "P51G"),
+    ("P52_P53", "Variação de existências e valorações", "P52_P53"),
+    ("net_exports", "Exportações líquidas", "P6-P7"),
+]
+
+for col, name, code in exp_components:
+    values = series_by_year(exp_df, col, years) / gdp_series * 100
+    add_row(rows, "Despesa", name, code, values, years)
+
+inc_df = y[["time", "B1GQ", "D1", "B2A3G", "D2", "D3"]].copy()
+inc_df["D2_D3"] = inc_df["D2"] - inc_df["D3"]
+
+inc_components = [
+    ("D1", "Remuneração dos empregados", "D1"),
+    (
+        "B2A3G",
+        "Excedente bruto de exploração e rendimento misto",
+        "B2A3G",
+    ),
+    (
+        "D2_D3",
+        "Impostos líquidos sobre a produção e importações",
+        "D2-D3",
+    ),
+]
+
+for col, name, code in inc_components:
+    values = series_by_year(inc_df, col, years) / gdp_series * 100
+    add_row(rows, "Rendimento", name, code, values, years)
+
+prod_df = (
+    b1g_by_nace.merge(
+        y[["time", "B1GQ", "D21", "D31"]],
+        on="time",
+        how="inner",
+    )
+    .sort_values("time")
+    .copy()
+)
+prod_df["net_taxes"] = prod_df["D21"] - prod_df["D31"]
+
+sector_components = [
+    c for c in nace_components if c != "TOTAL" and c in prod_df.columns
+]
+
+sector_labels = {
+    "A": "Agricultura, silvicultura e pesca",
+    "B-E": "Indústria",
+    "F": "Construção",
+    "G-I": "Comércio, transportes e alojamento",
+    "J": "Informação e comunicação",
+    "K": "Atividades financeiras e de seguros",
+    "L": "Atividades imobiliárias",
+    "M_N": "Atividades profissionais e administrativas",
+    "O-Q": "Administração pública, educação e saúde",
+    "R-U": "Artes e outros serviços",
+}
+
+for code in sector_components:
+    name = sector_labels.get(code, code)
+    values = series_by_year(prod_df, code, years) / gdp_series * 100
+    add_row(rows, "Produção", name, code, values, years)
+
+values = series_by_year(prod_df, "net_taxes", years) / gdp_series * 100
+add_row(
+    rows,
+    "Produção",
+    "Impostos líquidos sobre os produtos",
+    "_D21-D31",
+    values,
+    years,
+)
+
+table = pd.DataFrame(rows)
+table = table.round(1)
+
+table = table.sort_values(["Abordagem", "Código"])
+table = table.set_index(["Abordagem", "Componente", "Código"])
+
+# Zebra pattern with distinct palettes per Abordagem
+zebra_palettes = {
+    "Despesa": ("#e8f2ff", "#f5f9ff"),
+    "Produção": ("#e9f7ef", "#f4fbf7"),
+    "Rendimento": ("#fff1e5", "#fff8f1"),
+}
+default_palette = ("#f2f2f2", "#fafafa")
+
+def zebra_by_abordagem(row):
+    abordagem = row.name[0] if isinstance(row.name, tuple) else row.name
+    palette = zebra_palettes.get(abordagem, default_palette)
+    row_pos = zebra_by_abordagem._counters.get(abordagem, 0)
+    zebra_by_abordagem._counters[abordagem] = row_pos + 1
+    color = palette[row_pos % 2]
+    return [f"background-color: {color}"] * len(row)
+
+zebra_by_abordagem._counters = {}
+
+row_colors = []
+row_counters = {}
+for idx in table.index:
+    abordagem = idx[0] if isinstance(idx, tuple) else idx
+    palette = zebra_palettes.get(abordagem, default_palette)
+    pos = row_counters.get(abordagem, 0)
+    row_counters[abordagem] = pos + 1
+    row_colors.append(palette[pos % 2])
+
+def zebra_rows(data):
+    return pd.DataFrame(
+        [[f"background-color: {c}"] * data.shape[1] for c in row_colors],
+        index=data.index,
+        columns=data.columns,
+    )
+
+def zebra_index(_):
+    return [f"background-color: {c}" for c in row_colors]
+
+
+num_cols = table.select_dtypes(include="number").columns
+
+styled = (
+    table.style
+    .apply(zebra_rows, axis=None)
+    .apply_index(zebra_index, axis=0)
+    .format("{:.1f}", subset=num_cols)
+    .set_properties(**{"font-size": "0.85em"})
+    .set_properties(subset=pd.IndexSlice[:, :], **{"text-align": "right"})
+    .set_table_styles([
+        {"selector": "thead th", "props": [("font-size", "0.85em")]},
+        {"selector": "th", "props": [("text-align", "left")]},
+    ])
+    .set_table_styles([
+        {"selector": "th.row_heading", "props": [("text-align", "left"), ("font-size", "0.85em")]},
+        {"selector": "th.index_name", "props": [("text-align", "left"), ("font-size", "0.85em")]},
+    ], overwrite=False)
+)
+
+styled
+
+```
+
+## Parte do trabalho no rendimento agregado
+
+A **parte do trabalho** (*labor share*) é um indicador simples da **distribuição funcional do rendimento**: que fração do rendimento gerado na economia remunera o trabalho (assalariado e por conta própria), em comparação com o capital. É útil para discutir tendências de desigualdade, poder de negociação no mercado de trabalho e mudanças tecnológicas/sectoriais.
+
+### Definição e medida
+
+O objetivo é medir a fração do **rendimento dos fatores** atribuída ao trabalho. Para isso, é útil distinguir o PIB a preços de mercado ($Y_{pm}$) do PIB a preços dos fatores ($Y_{fp}$), onde
+
+$$
+Y_{fp} = Y_{pm} - (T_{\text{produção}} - S_{\text{produção}}) = D1 + B2A3G.
+$$
+
+Uma razão tentadora, mas **não recomendada**, é a “ingénua”:
+
+$$
+LS^{bad} = \frac{D1}{Y_{pm}}.
+$$
+
+O problema é que o numerador ($D1$, remunerações dos empregados) é rendimento do trabalho, enquanto o denominador ($Y_{pm}$) inclui também impostos líquidos (que não são rendimento dos fatores). Além disso, o trabalho por conta própria está parcialmente dentro de $B2A3G$ (rendimento misto), e por isso $D1/Y_{pm}$ tende a **subestimar** a parte do trabalho.
+
+Uma medida mínima mais coerente é a **não ajustada**, que usa um denominador comparável (rendimento dos fatores):
+
+$$
+LS^{na} = \frac{D1}{Y_{fp}} = \frac{D1}{Y_{pm} - (D2 - D3)}.
+$$
+
+Por fim, para incorporar (de forma simples) o trabalho por conta própria, usamos uma correção proporcional ao emprego:
+
+$$
+LS^{adj} = LS^{na} \times \frac{EMP}{SAL},
+$$
+
+que equivale a assumir que, em média, a **remuneração por trabalhador** é semelhante entre assalariados e trabalhadores por conta própria: $\widetilde{D1}/(EMP-SAL)=D1/SAL$ onde $\widetilde{D1}/(EMP-SAL)$ é o salário médio dos trabalhadores não assalariados. Aqui, $D2-D3$ são impostos líquidos sobre a produção e importações, $EMP$ é o emprego total e $SAL$ o número de assalariados.
+
+```{python}
+#| label: labor-share
+#| include: false
+labor_params = dict(geo="PT", unit="THS_PER")
+labor_inputs = eurostat_components("nama_10_pe", labor_params, ["EMP_DC", "SAL_DC"], freq="Y")
+
+labor_share = y.merge(labor_inputs, on="time", how="inner").sort_values("time").copy()
+
+# PIB a preços dos fatores: PIB a preços de mercado - (impostos líquidos sobre a produção e importações)
+labor_share["Y_fp"] = labor_share["B1GQ"] - (labor_share["D2"] - labor_share["D3"])
+
+# Parte do trabalho: versão não ajustada e ajustada (para conta própria), mais uma "ingénua" para comparação
+labor_share["LIS_na"] = labor_share["D1"] / labor_share["Y_fp"]
+labor_share["LIS_a"] = labor_share["LIS_na"] * (labor_share["EMP_DC"] / labor_share["SAL_DC"])
+labor_share["LIS_bad"] = labor_share["D1"] / labor_share["B1GQ"]
+
+labor_share = labor_share[["time", "LIS_na", "LIS_a", "LIS_bad"]].dropna().sort_values("time").copy()
+labor_share["time"] = labor_share["time"] - pd.DateOffset(months=6)
+```
+
+```{python}
+#| label: fig-labor-share
+#| fig-cap: "Portugal: parte do trabalho no rendimento (labor share)."
+df_long = (
+    labor_share.rename(
+        columns={
+            "LIS_na": "não ajustada: D1/Y_fp",
+            "LIS_a": "ajustada: (D1/Y_fp)(EMP/SAL)",
+            "LIS_bad": "ingénua/não recomendada: D1/Y_pm",
+        }
+    )
+    .melt(
+        id_vars="time",
+        value_vars=[
+            "ajustada: (D1/Y_fp)(EMP/SAL)",
+            "não ajustada: D1/Y_fp",
+            "ingénua/não recomendada: D1/Y_pm",
+        ],
+        var_name="series",
+        value_name="lis",
+    )
+)
+df_long["lis"] = df_long["lis"] * 100
+
+fig = px.line(
+    df_long,
+    x="time",
+    y="lis",
+    color="series",
+    title="Portugal: parte do rendimento do trabalho (labor share)",
+    template="plotly_white",
+    color_discrete_map={
+        "não ajustada: D1/Y_fp": "red",
+        "ajustada: (D1/Y_fp)(EMP/SAL)": "blue",
+        "ingénua/não recomendada: D1/Y_pm": "orange",
+    },
+    markers=True,
+    line_shape="linear",
+)
+fig.update_traces(
+    line_width=2.5,
+    marker_size=6,
+    marker_color="white",
+    marker_symbol="circle",
+    marker_line_width=2.0,
+)
+fig.update_layout(
+    title_x=0.5,
+    legend_title_text="",
+    xaxis_title="",
+    yaxis_title="",
+    legend=dict(
+        x=0.98,
+        y=0.02,
+        xanchor="right",
+        yanchor="bottom",
+        bgcolor="rgba(0,0,0,0)",
+        borderwidth=0,
+    ),
+    margin=dict(t=90),
+)
+fig.update_xaxes(dtick="M36", tickformat="%Y", hoverformat="%Y")
+fig.update_yaxes(tickformat=".1f", ticksuffix="%", range=[25, 85])
+fig
+```
+
+**Leitura económica**
+
+- A diferença entre a série **ajustada** e a **não ajustada** depende do peso do trabalho por conta própria (quanto maior $EMP/SAL$, maior a correção).
+- A série “ingénua” ($D1/Y_{pm}$) tende a ser mais baixa e pode variar com alterações nos impostos líquidos; por isso não deve ser lida como uma boa medida da repartição entre trabalho e capital.
+
+## Matrizes de entradas-saídas (input-output)
+
+As matrizes de entradas-saídas descrevem, para um dado ano, como a produção de cada setor é utilizada como **consumo intermédio** (inputs para outras indústrias) e como é absorvida pela **procura final** (consumo, investimento, exportações, etc.). Isto permite ligar a ótica da **produção** do PIB à estrutura das cadeias de valor.
+
+Nesta secção usamos a tabela simétrica da [OCDE](https://www.oecd.org/en/data/datasets/input-output-tables.html) (Total Table, TTL) para Portugal, no **último ano disponível** no ficheiro, e agregamos as indústrias em 10 grupos (A, B‑E, F, G‑I, J, K, L, M‑N, O‑Q, R‑U). Na procura final, usamos três agregados: `cons* = HFCE + NPISH + DPABR`, `inv* = GFCF + INVNT` e `exp* = CONS_NONRES + EXPO`.
+
+**Como ler a tabela**
+
+- Nas **linhas**, a produção do setor $i$ (vendas) reparte-se entre vendas intermédias a outros setores e procura final.
+- Nas **colunas**, o custo de produção do setor $j$ reparte-se entre compras intermédias a outros setores e **valor acrescentado** (VAB e componentes).
+- A linha `VALU` agrega para o **VAB** (PIB a preços de base); ao acrescentar impostos líquidos sobre produtos obtém-se o PIB a preços de mercado (como discutido na secção anterior).
+
+```{python}
+#| label: oecd-iot
+#| include: false
+# OECD IOTs Total Table (TTL): Portugal, último ano disponível no ficheiro ZIP
+zip_url = "https://stats.oecd.org/wbos/fileview2.aspx?IDFile=67d903bc-edff-463c-aeeb-52d711731221"
+
+zip_resp = requests.get(zip_url, timeout=60)
+zip_resp.raise_for_status()
+
+z = zipfile.ZipFile(io.BytesIO(zip_resp.content))
+prt_files = [name for name in z.namelist() if name.startswith("PRT") and name.endswith("ttl.csv")]
+if not prt_files:
+    raise ValueError("No PRT ttl files found in IOTs_TTL.zip")
+
+years = []
+for name in prt_files:
+    match = re.search(r"(\d{4})", name)
+    if match:
+        years.append(int(match.group(1)))
+latest_year = max(years)
+latest_file = [name for name in prt_files if str(latest_year) in name][0]
+
+with z.open(latest_file) as f:
+    iot_prt_ttl = pd.read_csv(f, index_col=0)
+
+iot_prt_ttl.index.name = "ROW"
+
+# Aggregate the OECD Total IOT (TTL) to NACE letter level (A..T)
+final_demand_cols = [
+    "HFCE",
+    "NPISH",
+    "GGFC",
+    "GFCF",
+    "INVNT",
+    "DPABR",
+    "CONS_NONRES",
+    "EXPO",
+    "IMPO",
+    "TOTAL",
+]
+
+industry_cols = [c for c in iot_prt_ttl.columns if c not in final_demand_cols]
+industry_col_groups = [c[0] for c in industry_cols]
+
+# First aggregate industry columns to letters; keep final demand columns as-is.
+iot_cols_letter = pd.concat(
+    [
+        iot_prt_ttl[industry_cols].T.groupby(industry_col_groups, sort=False).sum().T,
+        iot_prt_ttl[final_demand_cols],
+    ],
+    axis=1,
+)
+
+iot_cols_letter.index.name = "ROW"
+
+# Then aggregate industry rows (TTL_*) to letters.
+industry_rows = [
+    r for r in iot_cols_letter.index if r.startswith("TTL_") and r != "TTL_INT_FNL"
+]
+
+ttl = iot_cols_letter.loc[industry_rows].copy()
+ttl.index = [r.replace("TTL_", "")[0] for r in ttl.index]
+ttl = ttl.groupby(level=0).sum()
+
+other = iot_cols_letter.drop(index=industry_rows)
+
+iot_prt_ttl_letter = pd.concat([ttl, other], axis=0)
+
+sector_order = ["A", "B-E", "F", "G-I", "J", "K", "L", "M-N", "O-Q", "R-U"]
+
+letter_to_sector = {
+    "A": "A",
+    "B": "B-E",
+    "C": "B-E",
+    "D": "B-E",
+    "E": "B-E",
+    "F": "F",
+    "G": "G-I",
+    "H": "G-I",
+    "I": "G-I",
+    "J": "J",
+    "K": "K",
+    "L": "L",
+    "M": "M-N",
+    "N": "M-N",
+    "O": "O-Q",
+    "P": "O-Q",
+    "Q": "O-Q",
+    "R": "R-U",
+    "S": "R-U",
+    "T": "R-U",
+    "U": "R-U",
+}
+
+industry_letters = [c for c in iot_prt_ttl_letter.columns if re.fullmatch(r"[A-Z]", str(c))]
+letter_groups = [letter_to_sector.get(c, c) for c in industry_letters]
+
+cols_grouped = iot_prt_ttl_letter[industry_letters].T.groupby(letter_groups, sort=False).sum().T
+other_cols = iot_prt_ttl_letter.drop(columns=industry_letters)
+
+iot_cols_grouped = pd.concat([cols_grouped, other_cols], axis=1)
+
+industry_rows = [r for r in iot_cols_grouped.index if re.fullmatch(r"[A-Z]", str(r))]
+rows = iot_cols_grouped.loc[industry_rows].copy()
+rows.index = [letter_to_sector.get(r, r) for r in rows.index]
+rows = rows.groupby(level=0, sort=False).sum()
+other_rows = iot_cols_grouped.drop(index=industry_rows)
+
+iot_prt_ttl_broad = pd.concat([rows, other_rows], axis=0)
+
+# Aggregate final demand columns
+final_demand_groups = {
+    "cons*": ["HFCE", "NPISH", "DPABR"],
+    "inv*": ["GFCF", "INVNT"],
+    "exp*": ["CONS_NONRES", "EXPO"],
+}
+
+for new_col, cols in final_demand_groups.items():
+    cols_present = [c for c in cols if c in iot_prt_ttl_broad.columns]
+    if cols_present:
+        iot_prt_ttl_broad[new_col] = iot_prt_ttl_broad[cols_present].sum(axis=1)
+
+drop_cols = [c for cols in final_demand_groups.values() for c in cols]
+iot_prt_ttl_broad = iot_prt_ttl_broad.drop(columns=[c for c in drop_cols if c in iot_prt_ttl_broad.columns])
+
+final_order = [
+    "cons*",
+    "GGFC",
+    "inv*",
+    "exp*",
+    "IMPO",
+]
+col_order = [s for s in sector_order if s in iot_prt_ttl_broad.columns]
+final_order = [c for c in final_order if c in iot_prt_ttl_broad.columns]
+other_col_order = [c for c in iot_prt_ttl_broad.columns if c not in col_order + final_order]
+iot_prt_ttl_broad = iot_prt_ttl_broad[col_order + final_order + other_col_order]
+
+row_order = [s for s in sector_order if s in iot_prt_ttl_broad.index]
+other_row_order = [r for r in iot_prt_ttl_broad.index if r not in row_order]
+iot_prt_ttl_broad = iot_prt_ttl_broad.loc[row_order + other_row_order]
+```
+
+
+```{python}
+#| label: iot-tabela
+#| tbl-cap: "Tabela de entradas-saídas (OCDE, ano mais recente disponível; milhões de USD)."
+
+# style io table
+import numpy as np
+
+# Replace 0.0 with NaN for display
+io_table = iot_prt_ttl_broad.copy()
+io_table = io_table.replace(0.0, np.nan)
+
+num_cols = io_table.select_dtypes(include="number").columns
+
+# Indentar visualmente o índice via CSS (mais robusto do que espaços no texto em Quarto/HTML)
+indent4 = {
+    "A",
+    "B-E",
+    "F",
+    "G-I",
+    "J",
+    "K",
+    "L",
+    "M-N",
+    "O-Q",
+    "R-U",
+    "IMP_OTHER",
+    "TXS_INT_FNL",
+    "LABR",
+    "OTXS",
+    "CFC",
+    "NOPS",
+}
+indent2 = {"TTL_INT_FNL", "VALU"}
+
+
+def indent_index(idx):
+    out = []
+    for v in idx:
+        base = str(v).strip()
+        if base in indent4:
+            out.append("padding-left: 1.2em;")
+        elif base in indent2:
+            out.append("padding-left: 0.6em;")
+        else:
+            out.append("")
+    return out
+
+
+styled_io = (
+    io_table.style
+    .format("{:.1f}", subset=num_cols, na_rep="")
+    .apply_index(indent_index, axis=0)
+    .set_properties(**{"font-size": "0.65em"})
+    .set_properties(subset=pd.IndexSlice[:, :], **{"text-align": "right"})
+    .set_table_styles([
+        {"selector": "thead th", "props": [("font-size", "0.7em")]},
+        {"selector": "th", "props": [("text-align", "right")]},
+        {"selector": "th.row_heading", "props": [("text-align", "left"), ("font-size", "0.7em")]},
+        {"selector": "th.index_name", "props": [("text-align", "left"), ("font-size", "0.7em")]},
+    ])
+    .set_table_styles([
+        {"selector": "th.row_heading", "props": [("white-space", "pre"), ("font-size", "0.7em")]},
+    ], overwrite=False)
+)
+
+styled_io
+
+
+```
+
+**Leitura económica**
+
+- A estrutura fora da diagonal ilustra **encadeamentos produtivos**: setores que compram muitos inputs a outros setores tendem a ter menor VAB por unidade de produção.
+- As colunas de procura final (`cons*`, `GGFC`, `inv*`, `exp*`) mostram onde a produção de cada setor é absorvida: consumo privado/público, investimento e procura externa.
+- A linha `VALU` permite ler diretamente a contribuição setorial para o **PIB a preços de base**; comparar `VALU` com `OUTPUT` dá uma noção da intensidade de valor acrescentado do setor.
+
+Para facilitar a leitura, o quadro seguinte resume os códigos usados e indica se aparecem em linhas e/ou em colunas.
+
+```{python}
+#| label: Codes
+#| tbl-cap: "Descrição dos códigos usados na tabela de entradas-saídas."
+
+import pandas as pd
+
+# Descritores para códigos base (sem espaços de indentação)
+iot_code_desc_pt = {
+    # Setores (agregados)
+    "A": "Agricultura, silvicultura e pesca",
+    "B-E": "Indústrias extrativas e transformadoras; eletricidade, gás, água, saneamento e resíduos",
+    "F": "Construção",
+    "G-I": "Comércio, transportes, alojamento e restauração",
+    "J": "Informação e comunicação",
+    "K": "Atividades financeiras e de seguros",
+    "L": "Atividades imobiliárias",
+    "M-N": "Atividades profissionais, científicas e técnicas; atividades administrativas e de apoio",
+    "O-Q": "Administração pública, educação, saúde e ação social",
+    "R-U": "Artes, entretenimento e outros serviços; famílias e organizações internacionais",
+
+    # Procura final (agregada)
+    "cons*": "Consumo final das famílias e ISFLSF + compras diretas no estrangeiro (HFCE+NPISH+DPABR)",
+    "GGFC": "Despesa de consumo final das administrações públicas",
+    "inv*": "Investimento: FBCF + variação de existências (GFCF+INVNT)",
+    "exp*": "Procura externa: consumo de não residentes + exportações (CONS_NONRES+EXPO)",
+    "IMPO": "Importações",
+    "TOTAL": "Total",
+
+    # Outras rubricas / agregados da tabela
+    "IMP_OTHER": "Importações (outras)",
+    "TXS_INT_FNL": "Impostos líquidos de subsídios sobre produtos (consumo intermédio + procura final)",
+    "TTL_INT_FNL": "Total (consumo intermédio + procura final)",
+    "VALU": "Valor acrescentado bruto (VAB)",
+    "LABR": "Remunerações dos trabalhadores",
+    "OTXS": "Outros impostos líquidos de subsídios à produção",
+    "CFC": "Consumo de capital fixo",
+    "NOPS": "Excedente de exploração líquido",
+    "OUTPUT": "Produção",
+}
+
+index_codes = pd.Index(iot_prt_ttl_broad.index.astype(str))
+column_codes = pd.Index(iot_prt_ttl_broad.columns.astype(str))
+
+base_index = index_codes.str.strip()
+base_columns = column_codes.str.strip()
+base_all = pd.Index(base_index.union(base_columns))
+
+# Ordem preferencial por códigos base (sem indentação)
+preferred_order = [
+    "A",
+    "B-E",
+    "F",
+    "G-I",
+    "J",
+    "K",
+    "L",
+    "M-N",
+    "O-Q",
+    "R-U",
+    "cons*",
+    "GGFC",
+    "inv*",
+    "exp*",
+    "IMPO",
+    "TOTAL",
+    "IMP_OTHER",
+    "TXS_INT_FNL",
+    "TTL_INT_FNL",
+    "VALU",
+    "LABR",
+    "OTXS",
+    "CFC",
+    "NOPS",
+    "OUTPUT",
+]
+
+# Constrói lista única por código base, preservando a indentação (se existir na linha)
+codes = []
+for base in preferred_order:
+    if base not in base_all:
+        continue
+    # Preferir o rótulo do índice (preserva indentação)
+    idx_match = index_codes[base_index == base]
+    display = idx_match[0] if len(idx_match) else base
+    codes.append(display)
+
+# Adiciona restantes códigos não previstos, mantendo indentação do índice se existir
+remaining = [b for b in base_all if b not in preferred_order]
+for base in remaining:
+    idx_match = index_codes[base_index == base]
+    display = idx_match[0] if len(idx_match) else base
+    if display not in codes:
+        codes.append(display)
+
+code_base = [c.strip() for c in codes]
+
+# Flags agregados por código base (linhas/colunas)
+base_in_rows = set(base_index)
+base_in_cols = set(base_columns)
+
+iot_prt_ttl_broad_codebook_pt = pd.DataFrame(
+    {
+        "codigo": codes,
+        "descricao_pt": [iot_code_desc_pt.get(b, b) for b in code_base],
+        "em_linhas": [b in base_in_rows for b in code_base],
+        "em_colunas": [b in base_in_cols for b in code_base],
+    }
+)
+
+
+# Estilo do glossário
+codebook_display = iot_prt_ttl_broad_codebook_pt.copy()
+codebook_display = codebook_display.rename(
+    columns={
+        "codigo": "Código",
+        "descricao_pt": "Descrição",
+        "em_linhas": "Linhas",
+        "em_colunas": "Colunas",
+    }
+)
+codebook_display["Linhas"] = codebook_display["Linhas"].map({True: "sim", False: "não"})
+codebook_display["Colunas"] = codebook_display["Colunas"].map({True: "sim", False: "não"})
+codebook_display["Código"] = codebook_display["Código"].str.lstrip()
+
+
+# Index principal: padrão (Linhas, Colunas)
+codebook_display["Padrão"] = codebook_display["Linhas"] + "/" + codebook_display["Colunas"]
+pattern_order = ["sim/sim", "não/sim", "sim/não"]
+codebook_display["Padrão"] = pd.Categorical(codebook_display["Padrão"], categories=pattern_order, ordered=True)
+codebook_display["_ord"] = codebook_display.groupby("Padrão", observed=False).cumcount()
+codebook_display = codebook_display.set_index(["Padrão", "Código", "_ord"])
+codebook_display = codebook_display.rename_axis(index={"Padrão": "Lin/Col"})
+codebook_display = codebook_display.drop(columns=["Linhas", "Colunas"])
+
+# Remover espaços iniciais do Código apenas para o índice
+
+# Cores por grupo do índice Lin/Col
+pattern_colors = {
+    "sim/sim": ("#e8f2ff", "#f5f9ff"),
+    "não/sim": ("#e9f7ef", "#f4fbf7"),
+    "sim/não": ("#fff1e5", "#fff8f1"),
+}
+row_colors = []
+row_counters = {}
+for idx in codebook_display.index:
+    group = idx[0] if isinstance(idx, tuple) else idx
+    palette = pattern_colors.get(group, ("#f2f2f2", "#fafafa"))
+    pos = row_counters.get(group, 0)
+    row_counters[group] = pos + 1
+    row_colors.append(palette[pos % 2])
+
+def zebra_rows(data):
+    return pd.DataFrame(
+        [[f"background-color: {c}"] * data.shape[1] for c in row_colors],
+        index=data.index,
+        columns=data.columns,
+    )
+
+def zebra_index(_):
+    return [f"background-color: {c}" for c in row_colors]
+
+codebook_style = (
+    codebook_display.style.hide(axis="index", level=2)
+    .apply(zebra_rows, axis=None)
+    .apply_index(zebra_index, axis=0)
+    .set_table_styles([
+        {"selector": "th", "props": [("text-align", "left")]},
+        {"selector": "th.col_heading", "props": [("text-align", "left")]},
+        {"selector": "th.row_heading", "props": [("text-align", "left"), ("font-size", "0.85em")]},
+        {"selector": "th.index_name", "props": [("text-align", "left"), ("font-size", "0.85em")]},
+    ], overwrite=False)
+    .set_properties(**{"font-size": "0.85em"})
+    .set_table_styles([
+        {"selector": "thead th", "props": [("font-size", "0.85em")]},
+    ], overwrite=False)
+    .set_properties(subset=codebook_display.columns, **{"text-align": "right"})
+    .set_properties(subset=["Descrição"], **{"text-align": "left"})
+)
+
+codebook_style
+
+```
+
+
+### Extracção de agregados das IOT
+
+Usando a tabela agregada `iot_prt_ttl_broad` (OCDE, tabela simétrica TTL), podemos extrair diretamente alguns agregados.
+
+Seja $\mathcal{S}=\{\text{A},\text{B-E},\text{F},\text{G-I},\text{J},\text{K},\text{L},\text{M-N},\text{O-Q},\text{R-U}\}$ o conjunto dos setores agregados.
+
+1. **Output do setor $i$**:
+
+   $$
+   X_{i} = \text{TTL\_INT\_FNL}_{i} + \text{VALU}_{i}
+   = \text{TOTAL}_{i}.
+   $$
+
+2. **VAB (valor acrescentado) do setor $i$**:
+
+   $$
+   VA_i = \text{VALU}_i.
+   $$
+
+3. **VAB agregado**:
+
+   $$
+   VA = \sum_{i\in\mathcal{S}} \text{VALU}_i.
+   $$
+
+4. **Output agregado** (duas formas equivalentes):
+
+   $$
+   X = \sum_{i\in\mathcal{S}} \text{TOTAL}_i
+   = \text{TTL\_INT\_FNL}_{\text{TOTAL}} - \text{TXS\_INT\_FNL}_{\text{TOTAL}} - \text{IMP\_OTHER}_{\text{TOTAL}}.
+   $$
+
+5. **PIB a preços de base / fatores / mercado**:
+
+   $$
+   \begin{aligned}
+   Y_{pb} &= \text{VALU}_{\text{TOTAL}}, \\\\
+   Y_{fp} &= \text{LABR}_{\text{TOTAL}} + \text{CFC}_{\text{TOTAL}} + \text{NOPS}_{\text{TOTAL}}, \\\\
+   Y_{pm} &= \text{VALU}_{\text{TOTAL}} + \text{TXS\_INT\_FNL}_{\text{TOTAL}}.
+   \end{aligned}
+   $$
+
+   Alternativamente, pela linha `TTL_INT_FNL`:
+
+   $$
+   Y_{pm}
+   = \sum_{f\in\{\text{cons*},\text{GGFC},\text{inv*},\text{exp*},\text{IMPO}\}} \text{TTL\_INT\_FNL}_{f}
+   \;-\; \text{IMP\_OTHER}_{\text{TOTAL}}.
+   $$
+
+```{python}
+#| label: iot-aggregates
+#| tbl-cap: "Agregados calculados a partir da matriz de entradas-saídas (milhões de USD)."
+#| echo: false
+
+iot = iot_prt_ttl_broad.copy()
+
+sectors = ["A", "B-E", "F", "G-I", "J", "K", "L", "M-N", "O-Q", "R-U"]
+
+def _v(row, col):
+    return float(iot.loc[row, col])
+
+# 1) Output do setor B-E
+out_be_total = _v("B-E", "TOTAL")
+out_be_inputs = _v("TTL_INT_FNL", "B-E") + _v("VALU", "B-E")
+
+# 2) VAB por setor (linha VALU)
+va_by_sector = iot.loc["VALU", sectors].astype(float)
+
+# 3) VAB agregado
+va_total = float(va_by_sector.sum())
+va_total_totalcol = _v("VALU", "TOTAL") if "TOTAL" in iot.columns else va_total
+
+# 4) Output agregado
+out_total = float(iot.loc[sectors, "TOTAL"].sum())
+out_total_alt = _v("TTL_INT_FNL", "TOTAL") - _v("TXS_INT_FNL", "TOTAL") - _v("IMP_OTHER", "TOTAL")
+
+# 5) PIB: preços de base / fatores / mercado
+gdp_bp = va_total_totalcol
+gdp_fp = _v("LABR", "TOTAL") + _v("CFC", "TOTAL") + _v("NOPS", "TOTAL")
+gdp_mp = _v("VALU", "TOTAL") + _v("TXS_INT_FNL", "TOTAL")
+
+fd_cols = ["cons*", "GGFC", "inv*", "exp*", "IMPO"]
+gdp_mp_alt = float(iot.loc["TTL_INT_FNL", fd_cols].sum()) - _v("IMP_OTHER", "TOTAL")
+
+summary = pd.DataFrame(
+    [
+        ("1) Output do setor i (ex.: B-E = TOTAL[B-E])", out_be_total),
+        ("1) Output do setor i (ex.: B-E = TTL_INT_FNL[B-E] + VALU[B-E])", out_be_inputs),
+        ("2) VAB do setor i (ex.: B-E = VALU[B-E])", _v("VALU", "B-E")),
+        ("3) VAB agregado (soma de VALU nos setores)", va_total),
+        ("4) Output agregado (soma de TOTAL nos setores)", out_total),
+        ("4) Output agregado (TTL_INT_FNL - TXS_INT_FNL - IMP_OTHER)", out_total_alt),
+        ("5) PIB a preços de base (VALU[TOTAL])", gdp_bp),
+        ("5) PIB a preços dos fatores (LABR + CFC + NOPS)", gdp_fp),
+        ("5) PIB a preços de mercado (VALU + TXS_INT_FNL)", gdp_mp),
+        ("5) PIB a preços de mercado (linha TTL_INT_FNL, cons*..IMPO - IMP_OTHER[TOTAL])", gdp_mp_alt),
+    ],
+    columns=["Medida", "Valor"],
+)
+
+vab_denom = float(gdp_bp)
+summary["% do VAB"] = summary["Valor"] / vab_denom * 100
+
+(
+    summary.style.hide(axis="index")
+    .format(
+        {
+            "Valor": "{:,.1f}",
+            "% do VAB": "{:.1f}",
+        }
+    )
+    .set_properties(subset=["Medida"], **{"text-align": "left"})
+    .set_properties(subset=["Valor", "% do VAB"], **{"text-align": "right"})
+    .set_table_styles(
+        [
+            {"selector": "th.col_heading.col0", "props": [("text-align", "left")]},
+            {"selector": "th.col_heading.col1, th.col_heading.col2", "props": [("text-align", "right")]},
+        ],
+        overwrite=False,
+    )
+)
+```
+
+O **output** ou **produção bruta** de um setor ($X_i$) inclui tanto vendas para **procura final** como vendas **intermédias** para outras indústrias. Por isso, ao somar $X_i$ por setores, contamos várias vezes os mesmos bens/serviços ao longo da cadeia (um input produzido por $i$ é incorporado no output de $j$).
+
+Esta ideia pode ser vista na identidade contabilística:
+
+$$
+\sum_{i} X_i
+=
+\sum_i VA_i
+\;+\;
+\sum_{i}\sum_{j} Z_{ij},
+$$
+
+onde $VA_i$ é o valor acrescentado do setor $i$ e $Z_{ij}$ são vendas intermédias de $i$ para $j$. Como as transações intermédias $\sum_{i,j} Z_{ij}$ são positivas, o **output agregado** $\sum_i X_i$ é tipicamente **maior** do que o VAB agregado $\sum_i VA_i$.
+
+Isto motiva a introdução dos **ponderadores de Domar**, definidos como:
+
+$$
+d_i = \frac{X_i}{VAB}.
+$$
+
+A coluna **Output(i) % do VAB** na tabela seguinte corresponde a $100\times d_i$. A soma dos pesos (linha “TOTAL”) pode ser **superior a 100%**, refletindo precisamente a presença de consumo intermédio e encadeamentos produtivos.
+
+
+
+```{python}
+#| label: iot-va-by-sector
+#| tbl-cap: "VAB por setor (linha VALU; milhões de USD)."
+#| echo: false
+
+iot = iot_prt_ttl_broad.copy()
+sectors = ["A", "B-E", "F", "G-I", "J", "K", "L", "M-N", "O-Q", "R-U"]
+
+va_by_sector = iot.loc["VALU", sectors].astype(float)
+out_by_sector = iot.loc[sectors, "TOTAL"].astype(float)
+vab_denom = float(iot.loc["VALU", "TOTAL"])
+
+va_tbl = pd.DataFrame(
+    {
+        "Setor": sectors,
+        "VAB(i)": va_by_sector.values,
+        "Output(i)": out_by_sector.values,
+    }
+)
+va_tbl["VAB(i) % do VAB"] = va_tbl["VAB(i)"] / vab_denom * 100
+va_tbl["Output(i) % do VAB"] = va_tbl["Output(i)"] / vab_denom * 100
+va_tbl = va_tbl[["Setor", "VAB(i)", "VAB(i) % do VAB", "Output(i)", "Output(i) % do VAB"]]
+
+totals = pd.DataFrame(
+    {
+        "Setor": ["TOTAL"],
+        "VAB(i)": [float(va_tbl["VAB(i)"].sum())],
+        "VAB(i) % do VAB": [float(va_tbl["VAB(i)"].sum()) / vab_denom * 100],
+        "Output(i)": [float(va_tbl["Output(i)"].sum())],
+        "Output(i) % do VAB": [float(va_tbl["Output(i)"].sum()) / vab_denom * 100],
+    }
+)
+va_tbl = pd.concat([va_tbl, totals], ignore_index=True)
+
+(
+    va_tbl.style.hide(axis="index")
+    .format(
+        {
+            "VAB(i)": "{:,.1f}",
+            "VAB(i) % do VAB": "{:.1f}",
+            "Output(i)": "{:,.1f}",
+            "Output(i) % do VAB": "{:.1f}",
+        }
+    )
+    .set_properties(subset=["Setor"], **{"text-align": "left"})
+    .set_properties(
+        subset=["VAB(i)", "VAB(i) % do VAB", "Output(i)", "Output(i) % do VAB"],
+        **{"text-align": "right"},
+    )
+    .set_table_styles(
+        [
+            {"selector": "th.col_heading.col0", "props": [("text-align", "left")]},
+            {
+                "selector": "th.col_heading.col1, th.col_heading.col2, th.col_heading.col3, th.col_heading.col4",
+                "props": [("text-align", "right")],
+            },
+        ],
+        overwrite=False,
+    )
+)
+```
+
+### O teorema de Hulten
+
+O **teorema de Hulten** ([Hulten, 1978](https://academic.oup.com/restud/article-abstract/45/3/511/1573872)) liga a **produtividade agregada** às produtividades setoriais numa economia. Em termos simples, o crescimento da produtividade agregada pode ser escrito como uma média ponderada do crescimento da produtividade total dos fatores (PTF/TFP) dos setores:
+
+$$
+\Delta \ln Y \;\approx\; \sum_i d_i\,\Delta \ln A_i,
+\qquad
+d_i \equiv \frac{X_i}{VAB},
+$$
+
+onde $A_i$ é a produtividade do setor $i$ e $d_i$ é o **ponderador de Domar**: o **output bruto** do setor ($X_i$) em percentagem do VAB agregado. Estes pesos podem somar mais de 1 (mais de 100%) porque o output inclui transações intermédias ao longo da cadeia produtiva.
+
+```{python}
+#| echo: false
+#| output: asis
+
+vab_be = float(iot.loc["VALU", "B-E"])
+vab_share_be = 100 * vab_be / float(iot.loc["VALU", "TOTAL"])
+domar_be = 100 * float(iot.loc["B-E", "TOTAL"]) / float(iot.loc["VALU", "TOTAL"])
+
+text = (
+    f"**Porque isto é relevante para a Indústria (B‑E)?** Mesmo que a Indústria represente "
+    f"uma fração moderada do VAB, pode ter um **peso de Domar elevado** porque vende muitos "
+    f"**inputs intermédios** ao resto da economia. No nosso caso, B‑E tem **VAB(i) = "
+    f"{vab_be:,.1f} milhões USD** e representa **{vab_share_be:.1f}% do VAB** "
+    f"(coluna **VAB(i) % do VAB**), mas o seu **peso de Domar** é **{domar_be:.1f}% do VAB** "
+    f"(coluna **Output(i) % do VAB**). Assim, um ganho de produtividade em B‑E tem um efeito "
+    f"agregado potencialmente grande."
+)
+
+print(text)
+```
+
+
+
+## Algumas relações macroeconómicas
+
+Nesta secção ilustramos duas regularidades empíricas frequentemente usadas para interpretar o ciclo: a **Lei de Okun** (atividade e desemprego) e a **Curva de Phillips** (inflação e desemprego). Ao contrário das identidades das contas nacionais, estas relações **não são identidades contabilísticas**: são correlações que podem variar ao longo do tempo com instituições, expectativas e choques.
+
+### Lei de Okun para Portugal
+
+A **Lei de Okun** resume a ideia de que, quando a atividade económica acelera, o desemprego tende a cair (e vice‑versa). Em forma reduzida:
+
+$$
+\Delta u_t^{yoy} = c + b\,g_t^{yoy} + \varepsilon_t,
+$$
+
+onde $g_t^{yoy}$ é o crescimento real do PIB (variação percentual face ao mesmo trimestre do ano anterior) e $\Delta u_t^{yoy}$ é a variação da taxa de desemprego em **pontos percentuais** (face ao mesmo trimestre do ano anterior). No gráfico usamos dados trimestrais para Portugal (desemprego 15–74 anos, ajustado sazonalmente) e restringimos a amostra a $t<2020$ para evitar o período pandémico.
+
+```{python}
+#| label: fig-okun
+#| fig-cap: "Lei de Okun (Portugal): variação do PIB real vs. variação da taxa de desemprego (YoY)."
+
+import numpy as np
+
+gdp_q = eurostat_series(
+    "namq_10_gdp",
+    dict(geo="PT", na_item="B1GQ", s_adj="SCA", unit="CLV15_MEUR"),
+    freq="Q",
+    value_name="gdp_real",
+)
+
+u_q = eurostat_series(
+    "une_rt_q_h",
+    dict(geo="PT", age="Y15-74", sex="T", s_adj="SA", unit="PC_ACT"),
+    freq="Q",
+    value_name="unemp_rate",
+)
+
+df_okun = (
+    gdp_q.merge(u_q, on="time", how="inner")
+    .sort_values("time")
+    .copy()
+)
+
+df_okun["gdp_yoy"] = df_okun["gdp_real"].pct_change(4) * 100
+df_okun["u_yoy"] = df_okun["unemp_rate"].diff(4)
+
+df_okun = df_okun.dropna()
+df_okun = df_okun[df_okun["time"].dt.year >= 1999]
+df_okun = df_okun[df_okun["time"].dt.year < 2020]
+df_okun["Trimestre"] = df_okun["time"].dt.to_period("Q").astype(str)
+
+fig = px.scatter(
+    df_okun,
+    x="gdp_yoy",
+    y="u_yoy",
+    template="plotly_white",
+    labels={
+        "gdp_yoy": "PIB real (var. %, YoY)",
+        "u_yoy": "Desemprego (pp, YoY)",
+    },
+    hover_data={"Trimestre": True},
+    title="Lei de Okun: variação do PIB real vs. variação do desemprego",
+)
+
+# Linha de tendência simples (OLS via polyfit)
+coef = np.polyfit(df_okun["gdp_yoy"], df_okun["u_yoy"], 1)
+x_line = np.linspace(df_okun["gdp_yoy"].min(), df_okun["gdp_yoy"].max(), 100)
+y_line = coef[0] * x_line + coef[1]
+
+fig.add_trace(
+    go.Scatter(
+        x=x_line,
+        y=y_line,
+        mode="lines",
+        name=f"y = {coef[1]:.2f} {coef[0]:.2f}x",
+        line=dict(color="black", width=2, dash="dot"),
+    )
+)
+
+fig.update_layout(
+    title_x=0.5,
+    xaxis_title="PIB real (var. %, YoY)",
+    yaxis_title="Desemprego (pp, YoY)",
+    legend=dict(x=0.99, y=0.99, xanchor="right", yanchor="top", bgcolor="rgba(0,0,0,0)", borderwidth=0),
+    margin=dict(t=90),
+)
+
+# Marcadores vazios e anotação da regressão
+fig.update_traces(
+    selector=dict(mode="markers"),
+    marker=dict(symbol="circle-open", size=7, line=dict(width=1.5, color="black")),
+)
+
+# x_annot = np.nanpercentile(df_okun["gdp_yoy"], 70)
+# y_annot = coef[0] * x_annot + coef[1]
+# fig.add_annotation(
+#     x=x_annot,
+#     y=y_annot,
+#     text=f"y = {coef[1]:.2f} + {coef[0]:.2f}x",
+#     showarrow=False,
+#     font=dict(color="black"),
+# )
+fig
+```
+
+**Leitura económica**
+
+- Em geral, recessões aparecem no quadrante “PIB a cair / desemprego a subir”, enquanto expansões aparecem em “PIB a subir / desemprego a cair”.
+- A inclinação estimada ($b$) mede, aproximadamente, quantos **pp** o desemprego varia quando o PIB cresce mais **1 p.p.** em termos homólogos; a dispersão dos pontos reflete choques (participação, produtividade, políticas) e possíveis mudanças estruturais.
+
+### Curva de Phillips para Portugal
+
+A **Curva de Phillips** liga inflação e desemprego: com procura mais forte (mercado de trabalho mais “apertado”), a inflação tende a subir; com mais folga, tende a abrandar. Em forma reduzida:
+
+$$
+\pi_t^{yoy} = c + b\,u_t + \varepsilon_t,
+$$
+
+onde $\pi_t^{yoy}$ é a inflação homóloga (%) e $u_t$ é a taxa de desemprego (%).
+
+Abaixo mostramos duas versões (Portugal, desde 1999): (i) **IHPC total** (*headline*, `CP00`), mais sensível a choques de energia/alimentos; (ii) **IHPC subjacente** (*core*, `TOT_X_NRG_FOOD`), que exclui energia e alimentos e tende a captar melhor pressões domésticas. A inflação é calculada como a variação homóloga do índice de preços.
+
+```{python}
+#| label: fig-phillips
+#| fig-cap: "Curva de Phillips (Portugal): inflação (IHPC, YoY) vs. taxa de desemprego."
+
+# IHPC (índice), inflação homóloga mensal e média trimestral
+hicp = eurostat_series(
+    "prc_hicp_midx",
+    dict(geo="PT", coicop="CP00", unit="I15"),
+    freq="M",
+    value_name="hicp",
+).sort_values("time")
+
+hicp["infl_yoy"] = hicp["hicp"].pct_change(12) * 100
+hicp_q = (
+    hicp.dropna(subset=["infl_yoy"])
+    .assign(
+        time=hicp["time"]
+        .dt.to_period("Q")
+        .dt.to_timestamp(how="end")
+        .dt.normalize()
+    )
+    .groupby("time", as_index=False)["infl_yoy"]
+    .mean()
+)
+
+# Desemprego trimestral (IHPC vs desemprego)
+u_q = eurostat_series(
+    "une_rt_q_h",
+    dict(geo="PT", age="Y15-74", sex="T", s_adj="SA", unit="PC_ACT"),
+    freq="Q",
+    value_name="unemp_rate",
+)
+
+df_phillips = (
+    hicp_q.merge(u_q, on="time", how="inner")
+    .sort_values("time")
+    .copy()
+)
+df_phillips = df_phillips[df_phillips["time"] >= "1999-01-01"]
+df_phillips["Trimestre"] = df_phillips["time"].dt.to_period("Q").astype(str)
+
+fig = px.scatter(
+    df_phillips,
+    x="unemp_rate",
+    y="infl_yoy",
+    template="plotly_white",
+    labels={
+        "unemp_rate": "Taxa de desemprego (%)",
+        "infl_yoy": "Inflação IHPC (%, YoY)",
+    },
+    hover_data={"Trimestre": True},
+    title="Curva de Phillips: inflação vs. desemprego",
+)
+
+# Linha de tendência simples (OLS via polyfit)
+coef = np.polyfit(df_phillips["unemp_rate"], df_phillips["infl_yoy"], 1)
+x_line = np.linspace(df_phillips["unemp_rate"].min(), df_phillips["unemp_rate"].max(), 100)
+y_line = coef[0] * x_line + coef[1]
+
+fig.add_trace(
+    go.Scatter(
+        x=x_line,
+        y=y_line,
+        mode="lines",
+        name=f"y = {coef[1]:.2f} {coef[0]:.2f}x",
+        line=dict(color="black", width=2, dash="dot"),
+    )
+)
+
+fig.update_layout(
+    title_x=0.5,
+    xaxis_title="taxa de desemprego (%)",
+    yaxis_title="inflação IHPC (%, YoY)",
+    legend=dict(x=0.99, y=0.99, xanchor="right", yanchor="top", bgcolor="rgba(0,0,0,0)", borderwidth=0),
+    margin=dict(t=90),
+)
+
+# Marcadores vazios e anotação da regressão
+fig.update_traces(
+    selector=dict(mode="markers"),
+    marker=dict(symbol="circle-open", size=7, line=dict(width=1.5, color="black")),
+)
+
+# x_annot = np.nanpercentile(df_phillips["unemp_rate"], 70)
+# y_annot = coef[0] * x_annot + coef[1]
+# fig.add_annotation(
+#     x=x_annot,
+#     y=y_annot,
+#     text=f"y = {coef[1]:.2f} + {coef[0]:.2f}x",
+#     showarrow=False,
+#     font=dict(color="black"),
+# )
+
+fig
+```
+
+
+
+```{python}
+#| label: fig-phillips-core
+#| fig-cap: "Curva de Phillips (Portugal): inflação subjacente (IHPC core, YoY) vs. taxa de desemprego."
+
+# IHPC core (índice), inflação homóloga mensal e média trimestral
+hicp_core = eurostat_series(
+    "prc_hicp_midx",
+    dict(geo="PT", coicop="TOT_X_NRG_FOOD", unit="I15"),
+    freq="M",
+    value_name="hicp_core",
+).sort_values("time")
+
+hicp_core["infl_yoy"] = hicp_core["hicp_core"].pct_change(12) * 100
+hicp_core_q = (
+    hicp_core.dropna(subset=["infl_yoy"])
+    .assign(
+        time=hicp_core["time"]
+        .dt.to_period("Q")
+        .dt.to_timestamp(how="end")
+        .dt.normalize()
+    )
+    .groupby("time", as_index=False)["infl_yoy"]
+    .mean()
+)
+
+df_phillips_core = (
+    hicp_core_q.merge(u_q, on="time", how="inner")
+    .sort_values("time")
+    .copy()
+)
+df_phillips_core = df_phillips_core[df_phillips_core["time"] >= "1999-01-01"]
+df_phillips_core["Trimestre"] = df_phillips_core["time"].dt.to_period("Q").astype(str)
+
+fig = px.scatter(
+    df_phillips_core,
+    x="unemp_rate",
+    y="infl_yoy",
+    template="plotly_white",
+    labels={
+        "unemp_rate": "Taxa de desemprego (%)",
+        "infl_yoy": "Inflação IHPC core (%, YoY)",
+    },
+    hover_data={"Trimestre": True},
+    title="Curva de Phillips: inflação subjacente vs. desemprego",
+)
+
+# Linha de tendência simples (OLS via polyfit)
+coef = np.polyfit(df_phillips_core["unemp_rate"], df_phillips_core["infl_yoy"], 1)
+x_line = np.linspace(df_phillips_core["unemp_rate"].min(), df_phillips_core["unemp_rate"].max(), 100)
+y_line = coef[0] * x_line + coef[1]
+
+fig.add_trace(
+    go.Scatter(
+        x=x_line,
+        y=y_line,
+        mode="lines",
+        name=f"y = {coef[1]:.2f} {coef[0]:.2f}x",
+        line=dict(color="black", width=2, dash="dot"),
+    )
+)
+
+fig.update_layout(
+    title_x=0.5,
+    xaxis_title="taxa de desemprego (%)",
+    yaxis_title="inflação IHPC core (%, YoY)",
+    legend=dict(
+        x=0.99,
+        y=0.99,
+        xanchor="right",
+        yanchor="top",
+        bgcolor="rgba(0,0,0,0)",
+        borderwidth=0,
+    ),
+    margin=dict(t=90),
+)
+
+# Marcadores vazios
+fig.update_traces(
+    selector=dict(mode="markers"),
+    marker=dict(symbol="circle-open", size=7, line=dict(width=1.5, color="black")),
+)
+
+fig
+```
+
+**Leitura económica**
+
+- Se a relação for sobretudo conduzida por procura, espera‑se uma inclinação negativa ($b<0$). Na prática, choques de oferta (por exemplo, energia) podem deslocar a inflação sem grandes movimentos no desemprego, enfraquecendo a correlação na versão *headline*.
+- A versão **core** tende a ser menos volátil e, muitas vezes, a mostrar uma relação mais estável com o desemprego.

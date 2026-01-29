@@ -1,5 +1,5 @@
 ---
-title: "Portugal: Algumas estatísticas macroeconómicas"
+title: "Portugal: algumas estatísticas macroeconómicas"
 subtitle: "Fonte principal: Eurostat"
 lang: pt-PT
 jupyter: py313
@@ -194,7 +194,7 @@ fig = (px.line(
         x="time",
         y="gdp",
         color="series",
-        title="PIB em Portugal: valor nominal vs. real (série trimestral anualizada, em milhões de euros)",
+        title="PIB em Portugal (série trimestral anualizada, em milhões de euros)",
         template="plotly_white",
         color_discrete_map={"PIB a preços constantes": "blue", "PIB a preços correntes": "red"},
         markers=True,
