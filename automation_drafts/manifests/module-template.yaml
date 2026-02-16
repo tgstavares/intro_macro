@@ -1,0 +1,62 @@
+module_id: "NN_topic_slug"
+title_pt: "Titulo do modulo"
+subtitle_pt: "Subtitulo com fontes principais"
+language_policy:
+  primary_language: "pt-PT"
+  allow_technical_english_terms: true
+  preferred_mode: "portuguese-first-then-english-in-parentheses"
+style_anchor_modules:
+  - "01_portugal_eurostat.qmd"
+  - "02_portugal_contas_nacionais_plus.qmd"
+style_rules:
+  plotly_template: "plotly_white"
+  center_titles: true
+  require_fig_tbl_captions: true
+notebook_file: "NN_topic_slug.ipynb"
+qmd_file: "NN_topic_slug.qmd"
+render_order: NN
+
+sources:
+  - name: "Eurostat"
+    dataset: "dataset_code"
+    access: "api"
+    url: "https://ec.europa.eu/eurostat/"
+  - name: "OECD"
+    dataset: "dataset_code"
+    access: "file_or_api"
+    url: "https://www.oecd.org/"
+
+figures_required:
+  - id: "fig-main-1"
+    purpose: "Core message"
+    caption: "Caption text"
+
+tables_required:
+  - id: "tbl-main-1"
+    purpose: "Supporting numeric summary"
+    caption: "Caption text"
+
+sections:
+  - id: "intro"
+    title: "Introducao"
+    goal: "Frame the question and data."
+  - id: "evidence"
+    title: "Evidencia"
+    goal: "Show the main empirical findings."
+  - id: "interpretation"
+    title: "Interpretacao"
+    goal: "Link facts to macro reasoning."
+  - id: "limits"
+    title: "Limites"
+    goal: "State caveats and open questions."
+
+validation_checks:
+  - "Module renders with ./quarto.sh render NN_topic_slug.qmd"
+  - "All required figures/tables exist and have captions"
+  - "Definitions and units are explicit"
+  - "No TODO/TBD placeholders remain"
+  - "Narrative and captions are in pt-PT (limited technical English terms only)"
+  - "Figure/table style is consistent with modules 01 and 02"
+
+open_questions:
+  - "Question to settle before publication"

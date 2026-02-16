@@ -34,4 +34,6 @@ Este site reúne alguns relatórios e notebooks usados nas aulas de Introdução
     - Código-fonte (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/02_portugal_contas_nacionais_plus.qmd>
     - Notebook principal (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/02_National_accounts_PT.ipynb>
 
-3. [BREVEMENTE]
+3. [Portugal: matriz de Leontief e choques setoriais](03_portugal_iot_leontief.qmd)
+    - Código-fonte (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/03_portugal_iot_leontief.qmd>
+    - Notebook principal (GitHub): <https://github.com/tgstavares/intro_macro/blob/main/03_portugal_iot_leontief.ipynb>

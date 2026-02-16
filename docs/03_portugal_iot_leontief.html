@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-PT" xml:lang="pt-PT"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Portugal: matriz de Leontief e choques setoriais – Introdução à Macroeconomia: Dados e Estatísticas de Portugal</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-5b4ad623e5705c0698d39aec6f10cf02.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "Nenhum resultado",
+    "search-matching-documents-text": "documentos correspondentes",
+    "search-copy-link-title": "Copiar link para a busca",
+    "search-hide-matches-text": "Esconder correspondências adicionais",
+    "search-more-match-text": "mais correspondência neste documento",
+    "search-more-matches-text": "mais correspondências neste documento",
+    "search-clear-button-title": "Limpar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Procurar"
+  }
+}</script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script type="text/javascript">
+window.PlotlyConfig = {MathJaxConfig: 'local'};
+if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+</script>
+<script type="module">import "https://cdn.plot.ly/plotly-3.3.1.min"</script>
+
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="floating quarto-light">
+
+<div id="quarto-search-results"></div>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Nesta página</h2>
+   
+  <ul>
+  <li><a href="#introdução-e-objetivo" id="toc-introdução-e-objetivo" class="nav-link active" data-scroll-target="#introdução-e-objetivo"><span class="header-section-number">1</span> Introdução e objetivo</a></li>
+  <li><a href="#construção-de-x-a-e-y-com-setores-fictícios" id="toc-construção-de-x-a-e-y-com-setores-fictícios" class="nav-link" data-scroll-target="#construção-de-x-a-e-y-com-setores-fictícios"><span class="header-section-number">2</span> Construção de <span class="math inline">\(x\)</span>, <span class="math inline">\(A\)</span> e <span class="math inline">\(y\)</span> com setores fictícios</a></li>
+  <li><a href="#interpretação-da-matriz-técnica-a" id="toc-interpretação-da-matriz-técnica-a" class="nav-link" data-scroll-target="#interpretação-da-matriz-técnica-a"><span class="header-section-number">3</span> Interpretação da matriz técnica <span class="math inline">\(A\)</span></a></li>
+  <li><a href="#interpretação-da-inversa-de-leontief-i-a-1" id="toc-interpretação-da-inversa-de-leontief-i-a-1" class="nav-link" data-scroll-target="#interpretação-da-inversa-de-leontief-i-a-1"><span class="header-section-number">4</span> Interpretação da inversa de Leontief <span class="math inline">\((I-A)^{-1}\)</span></a></li>
+  <li><a href="#quantidades-vs.-preços" id="toc-quantidades-vs.-preços" class="nav-link" data-scroll-target="#quantidades-vs.-preços"><span class="header-section-number">5</span> Quantidades vs.&nbsp;preços</a></li>
+  <li><a href="#exercícios-choques-em-transporte-aéreo-e-alojamentorestauração" id="toc-exercícios-choques-em-transporte-aéreo-e-alojamentorestauração" class="nav-link" data-scroll-target="#exercícios-choques-em-transporte-aéreo-e-alojamentorestauração"><span class="header-section-number">6</span> Exercícios: choques em transporte aéreo e alojamento/restauração</a>
+  <ul class="collapse">
+  <li><a href="#cenário-1-choque-de--1-na-procura-final-de-transporte-aéreo" id="toc-cenário-1-choque-de--1-na-procura-final-de-transporte-aéreo" class="nav-link" data-scroll-target="#cenário-1-choque-de--1-na-procura-final-de-transporte-aéreo"><span class="header-section-number">6.1</span> Cenário 1: choque de -1% na procura final de transporte aéreo</a></li>
+  <li><a href="#cenário-2-choque-de-1-na-procura-final-de-alojamento-e-restauração" id="toc-cenário-2-choque-de-1-na-procura-final-de-alojamento-e-restauração" class="nav-link" data-scroll-target="#cenário-2-choque-de-1-na-procura-final-de-alojamento-e-restauração"><span class="header-section-number">6.2</span> Cenário 2: choque de +1% na procura final de alojamento e restauração</a></li>
+  </ul></li>
+  <li><a href="#limitações" id="toc-limitações" class="nav-link" data-scroll-target="#limitações"><span class="header-section-number">7</span> Limitações</a></li>
+  <li><a href="#conclusão" id="toc-conclusão" class="nav-link" data-scroll-target="#conclusão"><span class="header-section-number">8</span> Conclusão</a></li>
+  </ul>
+</nav>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Portugal: matriz de Leontief e choques setoriais</h1>
+<p class="subtitle lead">Fonte principal: OECD Input-Output Tables (TTL, raw)</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introdução-e-objetivo" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="introdução-e-objetivo"><span class="header-section-number">1</span> Introdução e objetivo</h2>
+<p>Este módulo continua a análise de matrizes de entradas-saídas iniciada no módulo 2, agora com foco no sistema de Leontief em detalhe setorial <strong>raw</strong> da OECD para Portugal.</p>
+<p>Para estudantes de licenciatura em Introdução à Macroeconomia, a ideia central é simples: um choque num setor não afeta apenas esse setor. Como as empresas compram e vendem entre si, há efeitos em cadeia (diretos e indiretos) ao longo da rede produtiva. A matriz de Leontief é uma forma transparente de medir esses encadeamentos.</p>
+<p>Neste contexto, vamos trabalhar com contas em valor (milhões de USD), não em quantidades físicas. Assim, cada resultado deve ser lido como um exercício de contabilidade económica e propagação setorial, útil para organizar o raciocínio macro, antes de modelos mais avançados com preços relativos, substituição e dinâmica intertemporal.</p>
+<p>Os objetivos são:</p>
+<ul>
+<li>construir o sistema <span class="math display">\[
+x = Ax + y,
+\]</span> onde as colunas de <span class="math inline">\(A\)</span> são compradores e as linhas são vendedores;</li>
+<li>incluir <code>TXS_INT_FNL</code> e <code>IMP_OTHER</code> como setores fictícios (<code>TXS</code> e <code>IMP_OTHER</code>) que vendem a todos, mas não compram a ninguém;</li>
+<li>interpretar a matriz técnica <span class="math inline">\(A\)</span> e a inversa de Leontief <span class="math inline">\((I-A)^{-1}\)</span>;</li>
+<li>ligar os sistemas de quantidades e preços;</li>
+<li>estudar dois exercícios de política de procura final:
+<ul>
+<li>choque de <code>-1%</code> em <code>H51</code> (Air transport),</li>
+<li>choque de <code>+1%</code> em <code>I</code> (Accommodation and food service activities).</li>
+</ul></li>
+</ul>
+</section>
+<section id="construção-de-x-a-e-y-com-setores-fictícios" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="construção-de-x-a-e-y-com-setores-fictícios"><span class="header-section-number">2</span> Construção de <span class="math inline">\(x\)</span>, <span class="math inline">\(A\)</span> e <span class="math inline">\(y\)</span> com setores fictícios</h2>
+<p>A construção segue, exatamente, os passos:</p>
+<ol type="1">
+<li>setores produzidos com <code>OUTPUT &gt; 0</code>;</li>
+<li>matriz de vendas intermédias <span class="math inline">\(Z\)</span> com linhas vendedores e colunas compradores;</li>
+<li>extensão com <code>TXS</code> e <code>IMP_OTHER</code> como vendedores fictícios;</li>
+<li>matriz técnica estendida <span class="math inline">\(A_{ext}\)</span> com colunas fictícias de compradores iguais a zero;</li>
+<li>procura final líquida <span class="math inline">\(y_{ext}\)</span> pela soma das colunas finais (incluindo <code>IMPO</code>, negativa).</li>
+</ol>
+<p>Formalmente:</p>
+<p><span class="math display">\[
+x_{ext} = A_{ext}x_{ext} + y_{ext}.
+\]</span></p>
+<p>O tratamento de <code>TXS</code> e <code>IMP_OTHER</code> é importante para manter a interpretação económica correta:</p>
+<ul>
+<li><code>TXS</code> (impostos líquidos sobre produtos) e <code>IMP_OTHER</code> (outras importações) entram como <strong>linhas vendedoras</strong>. Isto significa que contam como custos por unidade de produção dos setores compradores.</li>
+<li>Ao mesmo tempo, são definidos como setores que <strong>não compram inputs intermédios</strong> no sistema (<code>A_ext[:, "TXS"] = 0</code> e <code>A_ext[:, "IMP_OTHER"] = 0</code>).</li>
+<li>Em termos práticos, funcionam como “cunhas” (wedges) contabilísticas: afetam custos e preços de produção, mas não criam rondas adicionais de procura intermédia como um setor produtivo convencional.</li>
+</ul>
+<div class="cell" data-execution_count="4">
+<div id="tbl-system-dims" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="4">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-system-dims-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabela&nbsp;1: Dimensões principais do sistema estendido.
+</figcaption>
+<div aria-describedby="tbl-system-dims-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="3">
+<style type="text/css">
+#T_29016 th.col_heading.col0 {
+  text-align: left;
+}
+#T_29016 th.col_heading.col1 {
+  text-align: right;
+}
+#T_29016_row0_col0, #T_29016_row1_col0, #T_29016_row2_col0, #T_29016_row3_col0 {
+  text-align: left;
+}
+#T_29016_row0_col1, #T_29016_row1_col1, #T_29016_row2_col1, #T_29016_row3_col1 {
+  text-align: right;
+}
+</style>
+
+<table id="T_29016" class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th id="T_29016_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">Objeto</th>
+<th id="T_29016_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_29016_row0_col0" class="data row0 col0">Setores originais (colunas)</td>
+<td id="T_29016_row0_col1" class="data row0 col1">50</td>
+</tr>
+<tr class="even">
+<td id="T_29016_row1_col0" class="data row1 col0">Setores produzidos (S)</td>
+<td id="T_29016_row1_col1" class="data row1 col1">48</td>
+</tr>
+<tr class="odd">
+<td id="T_29016_row2_col0" class="data row2 col0">Setores estendidos (S_ext)</td>
+<td id="T_29016_row2_col1" class="data row2 col1">50</td>
+</tr>
+<tr class="even">
+<td id="T_29016_row3_col0" class="data row3 col0">Dimensão de A_ext</td>
+<td id="T_29016_row3_col1" class="data row3 col1">50 x 50</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>A Tabela 3 é um teste de coerência interna do sistema. A identidade <span class="math inline">\(x = Ax + y\)</span> deve ser satisfeita (até erro numérico de arredondamento) se a construção de <span class="math inline">\(A_{ext}\)</span>, <span class="math inline">\(x_{ext}\)</span> e <span class="math inline">\(y_{ext}\)</span> estiver correta. Mostramos setores económicos (<code>H51</code> e <code>I</code>) e os dois setores fictícios (<code>TXS</code> e <code>IMP_OTHER</code>) para confirmar que a lógica é consistente em todos os blocos do modelo.</p>
+<div class="cell" data-execution_count="5">
+<div id="tbl-equation-check" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="5">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-equation-check-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabela&nbsp;2: Verificação da identidade x = Ax + y (setores selecionados).
+</figcaption>
+<div aria-describedby="tbl-equation-check-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="4">
+<style type="text/css">
+#T_e5414 th.col_heading.col0 {
+  text-align: left;
+}
+#T_e5414 th.col_heading.col1 {
+  text-align: right;
+}
+#T_e5414  th.col_heading.col2 {
+  text-align: right;
+}
+#T_e5414  th.col_heading.col3 {
+  text-align: right;
+}
+#T_e5414_row0_col0, #T_e5414_row1_col0, #T_e5414_row2_col0, #T_e5414_row3_col0 {
+  text-align: left;
+  font-size: 0.9em;
+}
+#T_e5414_row0_col1, #T_e5414_row0_col2, #T_e5414_row0_col3, #T_e5414_row1_col1, #T_e5414_row1_col2, #T_e5414_row1_col3, #T_e5414_row2_col1, #T_e5414_row2_col2, #T_e5414_row2_col3, #T_e5414_row3_col1, #T_e5414_row3_col2, #T_e5414_row3_col3 {
+  text-align: right;
+  font-size: 0.9em;
+}
+</style>
+
+<table id="T_e5414" class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th id="T_e5414_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">setor</th>
+<th id="T_e5414_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">x_ext</th>
+<th id="T_e5414_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">A_ext_x_plus_y</th>
+<th id="T_e5414_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">erro</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_e5414_row0_col0" class="data row0 col0">Transporte aéreo</td>
+<td id="T_e5414_row0_col1" class="data row0 col1">5,564.00</td>
+<td id="T_e5414_row0_col2" class="data row0 col2">5,564.00</td>
+<td id="T_e5414_row0_col3" class="data row0 col3">0.001000</td>
+</tr>
+<tr class="even">
+<td id="T_e5414_row1_col0" class="data row1 col0">Alojamento e restauração</td>
+<td id="T_e5414_row1_col1" class="data row1 col1">25,907.77</td>
+<td id="T_e5414_row1_col2" class="data row1 col2">25,907.78</td>
+<td id="T_e5414_row1_col3" class="data row1 col3">-0.009000</td>
+</tr>
+<tr class="odd">
+<td id="T_e5414_row2_col0" class="data row2 col0">Impostos líquidos sobre produtos</td>
+<td id="T_e5414_row2_col1" class="data row2 col1">34,230.24</td>
+<td id="T_e5414_row2_col2" class="data row2 col2">34,230.24</td>
+<td id="T_e5414_row2_col3" class="data row2 col3">0.001000</td>
+</tr>
+<tr class="even">
+<td id="T_e5414_row3_col0" class="data row3 col0">Outras importações</td>
+<td id="T_e5414_row3_col1" class="data row3 col1">1,206.03</td>
+<td id="T_e5414_row3_col2" class="data row3 col2">1,206.03</td>
+<td id="T_e5414_row3_col3" class="data row3 col3">-0.002000</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="interpretação-da-matriz-técnica-a" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="interpretação-da-matriz-técnica-a"><span class="header-section-number">3</span> Interpretação da matriz técnica <span class="math inline">\(A\)</span></h2>
+<p>Cada entrada da matriz técnica tem interpretação direta:</p>
+<p><span class="math display">\[
+a_{ij} = \frac{z_{ij}}{x_j},
+\]</span></p>
+<p>onde <span class="math inline">\(z_{ij}\)</span> é a venda intermédia do setor vendedor <span class="math inline">\(i\)</span> ao setor comprador <span class="math inline">\(j\)</span> e <span class="math inline">\(x_j\)</span> é o output bruto de <span class="math inline">\(j\)</span>.</p>
+<p>Assim, <strong>cada elemento</strong> <span class="math inline">\(a_{ij}\)</span> mede quantas unidades monetárias de input de <span class="math inline">\(i\)</span> são necessárias, diretamente, para produzir 1 unidade monetária de output de <span class="math inline">\(j\)</span>.</p>
+<p>Leituras úteis:</p>
+<ul>
+<li>Entrada diagonal <code>a_{jj}</code>: uso interno direto do próprio setor <span class="math inline">\(j\)</span>.</li>
+<li>Entrada fora da diagonal <code>a_{ij}</code> com <code>i ≠ j</code>: dependência direta de <span class="math inline">\(j\)</span> em relação ao setor fornecedor <span class="math inline">\(i\)</span>.</li>
+<li>Coluna <span class="math inline">\(j\)</span> de <span class="math inline">\(A\)</span>: vetor completo da estrutura de custos intermédios diretos do setor <span class="math inline">\(j\)</span>.</li>
+</ul>
+<div class="cell" data-execution_count="6">
+<div id="tbl-a-columns-targets" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="6">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-a-columns-targets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabela&nbsp;3: Principais coeficientes técnicos diretos (a_ij) para os setores transporte aéreo e alojamento/restauração.
+</figcaption>
+<div aria-describedby="tbl-a-columns-targets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="5">
+<style type="text/css">
+#T_684c8 th.col_heading.col0 {
+  text-align: left;
+}
+#T_684c8  th.col_heading.col1 {
+  text-align: left;
+}
+#T_684c8 th.col_heading.col2 {
+  text-align: right;
+}
+#T_684c8_row0_col0, #T_684c8_row0_col1, #T_684c8_row1_col0, #T_684c8_row1_col1, #T_684c8_row2_col0, #T_684c8_row2_col1, #T_684c8_row3_col0, #T_684c8_row3_col1, #T_684c8_row4_col0, #T_684c8_row4_col1, #T_684c8_row5_col0, #T_684c8_row5_col1, #T_684c8_row6_col0, #T_684c8_row6_col1, #T_684c8_row7_col0, #T_684c8_row7_col1, #T_684c8_row8_col0, #T_684c8_row8_col1, #T_684c8_row9_col0, #T_684c8_row9_col1, #T_684c8_row10_col0, #T_684c8_row10_col1, #T_684c8_row11_col0, #T_684c8_row11_col1, #T_684c8_row12_col0, #T_684c8_row12_col1, #T_684c8_row13_col0, #T_684c8_row13_col1, #T_684c8_row14_col0, #T_684c8_row14_col1, #T_684c8_row15_col0, #T_684c8_row15_col1, #T_684c8_row16_col0, #T_684c8_row16_col1, #T_684c8_row17_col0, #T_684c8_row17_col1, #T_684c8_row18_col0, #T_684c8_row18_col1, #T_684c8_row19_col0, #T_684c8_row19_col1, #T_684c8_row20_col0, #T_684c8_row20_col1, #T_684c8_row21_col0, #T_684c8_row21_col1, #T_684c8_row22_col0, #T_684c8_row22_col1, #T_684c8_row23_col0, #T_684c8_row23_col1 {
+  text-align: left;
+}
+#T_684c8_row0_col2, #T_684c8_row1_col2, #T_684c8_row2_col2, #T_684c8_row3_col2, #T_684c8_row4_col2, #T_684c8_row5_col2, #T_684c8_row6_col2, #T_684c8_row7_col2, #T_684c8_row8_col2, #T_684c8_row9_col2, #T_684c8_row10_col2, #T_684c8_row11_col2, #T_684c8_row12_col2, #T_684c8_row13_col2, #T_684c8_row14_col2, #T_684c8_row15_col2, #T_684c8_row16_col2, #T_684c8_row17_col2, #T_684c8_row18_col2, #T_684c8_row19_col2, #T_684c8_row20_col2, #T_684c8_row21_col2, #T_684c8_row22_col2, #T_684c8_row23_col2 {
+  text-align: right;
+}
+</style>
+
+<table id="T_684c8" class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th id="T_684c8_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">Setor comprador</th>
+<th id="T_684c8_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Setor vendedor</th>
+<th id="T_684c8_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">a_ij</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_684c8_row0_col0" class="data row0 col0">Transporte aéreo</td>
+<td id="T_684c8_row0_col1" class="data row0 col1">Refinação de petróleo</td>
+<td id="T_684c8_row0_col2" class="data row0 col2">0.3255</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row1_col0" class="data row1 col0">Transporte aéreo</td>
+<td id="T_684c8_row1_col1" class="data row1 col1">Armazenagem e apoio ao transporte</td>
+<td id="T_684c8_row1_col2" class="data row1 col2">0.1571</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row2_col0" class="data row2 col0">Transporte aéreo</td>
+<td id="T_684c8_row2_col1" class="data row2 col1">Comércio</td>
+<td id="T_684c8_row2_col2" class="data row2 col2">0.0786</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row3_col0" class="data row3 col0">Transporte aéreo</td>
+<td id="T_684c8_row3_col1" class="data row3 col1">Atividades administrativas e apoio</td>
+<td id="T_684c8_row3_col2" class="data row3 col2">0.0745</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row4_col0" class="data row4 col0">Transporte aéreo</td>
+<td id="T_684c8_row4_col1" class="data row4 col1">Atividades financeiras e seguros</td>
+<td id="T_684c8_row4_col2" class="data row4 col2">0.0339</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row5_col0" class="data row5 col0">Transporte aéreo</td>
+<td id="T_684c8_row5_col1" class="data row5 col1">Mobiliário e outras indústrias</td>
+<td id="T_684c8_row5_col2" class="data row5 col2">0.0277</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row6_col0" class="data row6 col0">Transporte aéreo</td>
+<td id="T_684c8_row6_col1" class="data row6 col1">Atividades profissionais e científicas</td>
+<td id="T_684c8_row6_col2" class="data row6 col2">0.0231</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row7_col0" class="data row7 col0">Transporte aéreo</td>
+<td id="T_684c8_row7_col1" class="data row7 col1">Outro equipamento de transporte</td>
+<td id="T_684c8_row7_col2" class="data row7 col2">0.0229</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row8_col0" class="data row8 col0">Transporte aéreo</td>
+<td id="T_684c8_row8_col1" class="data row8 col1">Alojamento e restauração</td>
+<td id="T_684c8_row8_col2" class="data row8 col2">0.0209</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row9_col0" class="data row9 col0">Transporte aéreo</td>
+<td id="T_684c8_row9_col1" class="data row9 col1">Transporte aéreo</td>
+<td id="T_684c8_row9_col2" class="data row9 col2">0.0146</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row10_col0" class="data row10 col0">Transporte aéreo</td>
+<td id="T_684c8_row10_col1" class="data row10 col1">Impostos líquidos sobre produtos</td>
+<td id="T_684c8_row10_col2" class="data row10 col2">0.0138</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row11_col0" class="data row11 col0">Transporte aéreo</td>
+<td id="T_684c8_row11_col1" class="data row11 col1">Serviços informáticos e informação</td>
+<td id="T_684c8_row11_col2" class="data row11 col2">0.0126</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row12_col0" class="data row12 col0">Alojamento e restauração</td>
+<td id="T_684c8_row12_col1" class="data row12 col1">Alimentares, bebidas e tabaco</td>
+<td id="T_684c8_row12_col2" class="data row12 col2">0.1164</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row13_col0" class="data row13 col0">Alojamento e restauração</td>
+<td id="T_684c8_row13_col1" class="data row13 col1">Comércio</td>
+<td id="T_684c8_row13_col2" class="data row13 col2">0.0579</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row14_col0" class="data row14 col0">Alojamento e restauração</td>
+<td id="T_684c8_row14_col1" class="data row14 col1">Eletricidade, gás e vapor</td>
+<td id="T_684c8_row14_col2" class="data row14 col2">0.0487</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row15_col0" class="data row15 col0">Alojamento e restauração</td>
+<td id="T_684c8_row15_col1" class="data row15 col1">Impostos líquidos sobre produtos</td>
+<td id="T_684c8_row15_col2" class="data row15 col2">0.0272</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row16_col0" class="data row16 col0">Alojamento e restauração</td>
+<td id="T_684c8_row16_col1" class="data row16 col1">Imobiliário</td>
+<td id="T_684c8_row16_col2" class="data row16 col2">0.0270</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row17_col0" class="data row17 col0">Alojamento e restauração</td>
+<td id="T_684c8_row17_col1" class="data row17 col1">Atividades administrativas e apoio</td>
+<td id="T_684c8_row17_col2" class="data row17 col2">0.0260</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row18_col0" class="data row18 col0">Alojamento e restauração</td>
+<td id="T_684c8_row18_col1" class="data row18 col1">Agricultura e caça</td>
+<td id="T_684c8_row18_col2" class="data row18 col2">0.0259</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row19_col0" class="data row19 col0">Alojamento e restauração</td>
+<td id="T_684c8_row19_col1" class="data row19 col1">Atividades profissionais e científicas</td>
+<td id="T_684c8_row19_col2" class="data row19 col2">0.0251</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row20_col0" class="data row20 col0">Alojamento e restauração</td>
+<td id="T_684c8_row20_col1" class="data row20 col1">Atividades financeiras e seguros</td>
+<td id="T_684c8_row20_col2" class="data row20 col2">0.0171</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row21_col0" class="data row21 col0">Alojamento e restauração</td>
+<td id="T_684c8_row21_col1" class="data row21 col1">Construção</td>
+<td id="T_684c8_row21_col2" class="data row21 col2">0.0095</td>
+</tr>
+<tr class="odd">
+<td id="T_684c8_row22_col0" class="data row22 col0">Alojamento e restauração</td>
+<td id="T_684c8_row22_col1" class="data row22 col1">Água, saneamento e resíduos</td>
+<td id="T_684c8_row22_col2" class="data row22 col2">0.0090</td>
+</tr>
+<tr class="even">
+<td id="T_684c8_row23_col0" class="data row23 col0">Alojamento e restauração</td>
+<td id="T_684c8_row23_col1" class="data row23 col1">Alojamento e restauração</td>
+<td id="T_684c8_row23_col2" class="data row23 col2">0.0082</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="interpretação-da-inversa-de-leontief-i-a-1" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="interpretação-da-inversa-de-leontief-i-a-1"><span class="header-section-number">4</span> Interpretação da inversa de Leontief <span class="math inline">\((I-A)^{-1}\)</span></h2>
+<p>Com</p>
+<p><span class="math display">\[
+x = (I-A)^{-1}y \equiv Ly,
+\]</span></p>
+<p>cada elemento</p>
+<p><span class="math display">\[
+l_{ij} = \left[(I-A)^{-1}\right]_{ij}
+\]</span></p>
+<p>tem interpretação económica precisa: é a variação total do output do setor <span class="math inline">\(i\)</span> quando a procura final do setor <span class="math inline">\(j\)</span> aumenta em 1 unidade monetária, mantendo fixos os coeficientes técnicos.</p>
+<p>Uma forma útil de ver esta matriz é pela expansão em série:</p>
+<p><span class="math display">\[
+(I-A)^{-1} = I + A + A^2 + A^3 + \cdots
+\]</span></p>
+<p>Se quisermos olhar apenas para os encadeamentos para além do efeito “imediato” no próprio setor, então:</p>
+<p><span class="math display">\[
+(I-A)^{-1} - I = A + A^2 + A^3 + \cdots
+\]</span></p>
+<p>Isto inclui:</p>
+<ul>
+<li>efeito direto (primeira ronda de produção),</li>
+<li>efeitos indiretos (rondas sucessivas via compras intermédias).</li>
+</ul>
+<p>Leituras úteis:</p>
+<ul>
+<li>Entrada diagonal <code>l_{jj}</code>: efeito total no próprio setor após todas as rondas.</li>
+<li>Entrada fora da diagonal <code>l_{ij}</code>: transmissão intersetorial de um choque em <span class="math inline">\(j\)</span> para o setor <span class="math inline">\(i\)</span>.</li>
+<li>Coluna <span class="math inline">\(j\)</span> de <span class="math inline">\(L\)</span>: distribuição setorial completa do multiplicador de um choque em <span class="math inline">\(y_j\)</span>.</li>
+</ul>
+<div class="cell" data-execution_count="7">
+<div id="tbl-multipliers" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="7">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-multipliers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabela&nbsp;4: Multiplicadores agregados (output total produzido) para choques em H51 e I.
+</figcaption>
+<div aria-describedby="tbl-multipliers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="6">
+<style type="text/css">
+#T_2c3b7 th.col_heading.col0 {
+  text-align: left;
+}
+#T_2c3b7 th.col_heading.col1 {
+  text-align: right;
+}
+#T_2c3b7  th.col_heading.col2 {
+  text-align: right;
+}
+#T_2c3b7  th.col_heading.col3 {
+  text-align: right;
+}
+#T_2c3b7_row0_col0, #T_2c3b7_row1_col0 {
+  text-align: left;
+}
+#T_2c3b7_row0_col1, #T_2c3b7_row0_col2, #T_2c3b7_row0_col3, #T_2c3b7_row1_col1, #T_2c3b7_row1_col2, #T_2c3b7_row1_col3 {
+  text-align: right;
+}
+</style>
+
+<table id="T_2c3b7" class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th id="T_2c3b7_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">Setor do choque</th>
+<th id="T_2c3b7_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">choque_pct</th>
+<th id="T_2c3b7_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">delta_y</th>
+<th id="T_2c3b7_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">multiplicador_output_total</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_2c3b7_row0_col0" class="data row0 col0">Transporte aéreo</td>
+<td id="T_2c3b7_row0_col1" class="data row0 col1">-1.00</td>
+<td id="T_2c3b7_row0_col2" class="data row0 col2">-47.57</td>
+<td id="T_2c3b7_row0_col3" class="data row0 col3">2.6948</td>
+</tr>
+<tr class="even">
+<td id="T_2c3b7_row1_col0" class="data row1 col0">Alojamento e restauração</td>
+<td id="T_2c3b7_row1_col1" class="data row1 col1">1.00</td>
+<td id="T_2c3b7_row1_col2" class="data row1 col2">227.15</td>
+<td id="T_2c3b7_row1_col3" class="data row1 col3">2.0537</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Os multiplicadores da Tabela 4 mostram que o efeito agregado no output ultrapassa o choque inicial de procura final em ambos os casos. Em termos económicos, isto reflete rondas sucessivas de produção intermédia: um aumento (ou queda) de procura num setor altera as compras a fornecedores, que por sua vez ajustam a sua própria procura de inputs.</p>
+<div id="txt-multipliers-interpretation" class="cell" data-execution_count="8">
+<p>Leitura de alguns números:</p>
+<ul>
+<li>Um choque de 1 unidade monetária na procura final de <strong>Transporte aéreo</strong> gera, em média, <strong>2.695</strong> unidades de variação no output total.</li>
+<li>Um choque de 1 unidade monetária na procura final de <strong>Alojamento e restauração</strong> gera, em média, <strong>2.054</strong> unidades de variação no output total.</li>
+<li>Na nossa calibração, os choques aplicados têm magnitude de <strong>47.6</strong> e <strong>227.2 milhões USD</strong>, respetivamente, e por isso os efeitos agregados diferem também pela dimensão inicial de Δy.</li>
+</ul>
+</div>
+<div class="cell" data-execution_count="9">
+<div id="tbl-leontief-columns-targets" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="9">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-leontief-columns-targets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabela&nbsp;5: Principais coeficientes da inversa de Leontief (l_ij) para choques unitários em transporte aéreo e alojamento/restauração.
+</figcaption>
+<div aria-describedby="tbl-leontief-columns-targets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="8">
+<style type="text/css">
+#T_6236b th.col_heading.col0 {
+  text-align: left;
+}
+#T_6236b  th.col_heading.col1 {
+  text-align: left;
+}
+#T_6236b th.col_heading.col2 {
+  text-align: right;
+}
+#T_6236b_row0_col0, #T_6236b_row0_col1, #T_6236b_row1_col0, #T_6236b_row1_col1, #T_6236b_row2_col0, #T_6236b_row2_col1, #T_6236b_row3_col0, #T_6236b_row3_col1, #T_6236b_row4_col0, #T_6236b_row4_col1, #T_6236b_row5_col0, #T_6236b_row5_col1, #T_6236b_row6_col0, #T_6236b_row6_col1, #T_6236b_row7_col0, #T_6236b_row7_col1, #T_6236b_row8_col0, #T_6236b_row8_col1, #T_6236b_row9_col0, #T_6236b_row9_col1, #T_6236b_row10_col0, #T_6236b_row10_col1, #T_6236b_row11_col0, #T_6236b_row11_col1, #T_6236b_row12_col0, #T_6236b_row12_col1, #T_6236b_row13_col0, #T_6236b_row13_col1, #T_6236b_row14_col0, #T_6236b_row14_col1, #T_6236b_row15_col0, #T_6236b_row15_col1, #T_6236b_row16_col0, #T_6236b_row16_col1, #T_6236b_row17_col0, #T_6236b_row17_col1, #T_6236b_row18_col0, #T_6236b_row18_col1, #T_6236b_row19_col0, #T_6236b_row19_col1, #T_6236b_row20_col0, #T_6236b_row20_col1, #T_6236b_row21_col0, #T_6236b_row21_col1, #T_6236b_row22_col0, #T_6236b_row22_col1, #T_6236b_row23_col0, #T_6236b_row23_col1 {
+  text-align: left;
+}
+#T_6236b_row0_col2, #T_6236b_row1_col2, #T_6236b_row2_col2, #T_6236b_row3_col2, #T_6236b_row4_col2, #T_6236b_row5_col2, #T_6236b_row6_col2, #T_6236b_row7_col2, #T_6236b_row8_col2, #T_6236b_row9_col2, #T_6236b_row10_col2, #T_6236b_row11_col2, #T_6236b_row12_col2, #T_6236b_row13_col2, #T_6236b_row14_col2, #T_6236b_row15_col2, #T_6236b_row16_col2, #T_6236b_row17_col2, #T_6236b_row18_col2, #T_6236b_row19_col2, #T_6236b_row20_col2, #T_6236b_row21_col2, #T_6236b_row22_col2, #T_6236b_row23_col2 {
+  text-align: right;
+}
+</style>
+
+<table id="T_6236b" class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th id="T_6236b_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">Setor do choque</th>
+<th id="T_6236b_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Setor afetado</th>
+<th id="T_6236b_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">l_ij</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_6236b_row0_col0" class="data row0 col0">Transporte aéreo</td>
+<td id="T_6236b_row0_col1" class="data row0 col1">Transporte aéreo</td>
+<td id="T_6236b_row0_col2" class="data row0 col2">1.0184</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row1_col0" class="data row1 col0">Transporte aéreo</td>
+<td id="T_6236b_row1_col1" class="data row1 col1">Refinação de petróleo</td>
+<td id="T_6236b_row1_col2" class="data row1 col2">0.4164</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row2_col0" class="data row2 col0">Transporte aéreo</td>
+<td id="T_6236b_row2_col1" class="data row2 col1">Armazenagem e apoio ao transporte</td>
+<td id="T_6236b_row2_col2" class="data row2 col2">0.2063</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row3_col0" class="data row3 col0">Transporte aéreo</td>
+<td id="T_6236b_row3_col1" class="data row3 col1">Comércio</td>
+<td id="T_6236b_row3_col2" class="data row3 col2">0.1681</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row4_col0" class="data row4 col0">Transporte aéreo</td>
+<td id="T_6236b_row4_col1" class="data row4 col1">Atividades administrativas e apoio</td>
+<td id="T_6236b_row4_col2" class="data row4 col2">0.1316</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row5_col0" class="data row5 col0">Transporte aéreo</td>
+<td id="T_6236b_row5_col1" class="data row5 col1">Atividades financeiras e seguros</td>
+<td id="T_6236b_row5_col2" class="data row5 col2">0.0818</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row6_col0" class="data row6 col0">Transporte aéreo</td>
+<td id="T_6236b_row6_col1" class="data row6 col1">Atividades profissionais e científicas</td>
+<td id="T_6236b_row6_col2" class="data row6 col2">0.0805</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row7_col0" class="data row7 col0">Transporte aéreo</td>
+<td id="T_6236b_row7_col1" class="data row7 col1">Eletricidade, gás e vapor</td>
+<td id="T_6236b_row7_col2" class="data row7 col2">0.0756</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row8_col0" class="data row8 col0">Transporte aéreo</td>
+<td id="T_6236b_row8_col1" class="data row8 col1">Químicos</td>
+<td id="T_6236b_row8_col2" class="data row8 col2">0.0499</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row9_col0" class="data row9 col0">Transporte aéreo</td>
+<td id="T_6236b_row9_col1" class="data row9 col1">Serviços informáticos e informação</td>
+<td id="T_6236b_row9_col2" class="data row9 col2">0.0380</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row10_col0" class="data row10 col0">Transporte aéreo</td>
+<td id="T_6236b_row10_col1" class="data row10 col1">Mobiliário e outras indústrias</td>
+<td id="T_6236b_row10_col2" class="data row10 col2">0.0379</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row11_col0" class="data row11 col0">Transporte aéreo</td>
+<td id="T_6236b_row11_col1" class="data row11 col1">Transporte terrestre</td>
+<td id="T_6236b_row11_col2" class="data row11 col2">0.0359</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row12_col0" class="data row12 col0">Alojamento e restauração</td>
+<td id="T_6236b_row12_col1" class="data row12 col1">Alojamento e restauração</td>
+<td id="T_6236b_row12_col2" class="data row12 col2">1.0144</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row13_col0" class="data row13 col0">Alojamento e restauração</td>
+<td id="T_6236b_row13_col1" class="data row13 col1">Alimentares, bebidas e tabaco</td>
+<td id="T_6236b_row13_col2" class="data row13 col2">0.1460</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row14_col0" class="data row14 col0">Alojamento e restauração</td>
+<td id="T_6236b_row14_col1" class="data row14 col1">Comércio</td>
+<td id="T_6236b_row14_col2" class="data row14 col2">0.1278</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row15_col0" class="data row15 col0">Alojamento e restauração</td>
+<td id="T_6236b_row15_col1" class="data row15 col1">Eletricidade, gás e vapor</td>
+<td id="T_6236b_row15_col2" class="data row15 col2">0.1182</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row16_col0" class="data row16 col0">Alojamento e restauração</td>
+<td id="T_6236b_row16_col1" class="data row16 col1">Atividades profissionais e científicas</td>
+<td id="T_6236b_row16_col2" class="data row16 col2">0.0659</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row17_col0" class="data row17 col0">Alojamento e restauração</td>
+<td id="T_6236b_row17_col1" class="data row17 col1">Agricultura e caça</td>
+<td id="T_6236b_row17_col2" class="data row17 col2">0.0654</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row18_col0" class="data row18 col0">Alojamento e restauração</td>
+<td id="T_6236b_row18_col1" class="data row18 col1">Atividades administrativas e apoio</td>
+<td id="T_6236b_row18_col2" class="data row18 col2">0.0588</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row19_col0" class="data row19 col0">Alojamento e restauração</td>
+<td id="T_6236b_row19_col1" class="data row19 col1">Atividades financeiras e seguros</td>
+<td id="T_6236b_row19_col2" class="data row19 col2">0.0488</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row20_col0" class="data row20 col0">Alojamento e restauração</td>
+<td id="T_6236b_row20_col1" class="data row20 col1">Químicos</td>
+<td id="T_6236b_row20_col2" class="data row20 col2">0.0399</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row21_col0" class="data row21 col0">Alojamento e restauração</td>
+<td id="T_6236b_row21_col1" class="data row21 col1">Imobiliário</td>
+<td id="T_6236b_row21_col2" class="data row21 col2">0.0385</td>
+</tr>
+<tr class="odd">
+<td id="T_6236b_row22_col0" class="data row22 col0">Alojamento e restauração</td>
+<td id="T_6236b_row22_col1" class="data row22 col1">Refinação de petróleo</td>
+<td id="T_6236b_row22_col2" class="data row22 col2">0.0343</td>
+</tr>
+<tr class="even">
+<td id="T_6236b_row23_col0" class="data row23 col0">Alojamento e restauração</td>
+<td id="T_6236b_row23_col1" class="data row23 col1">Construção</td>
+<td id="T_6236b_row23_col2" class="data row23 col2">0.0278</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>A Tabela 5 decompõe os efeitos totais por setor afetado. Quanto maior for <span class="math inline">\(l_{ij}\)</span>, maior é a sensibilidade do setor <span class="math inline">\(i\)</span> a um choque de procura final no setor <span class="math inline">\(j\)</span>. Isto ajuda a identificar ligações produtivas particularmente fortes.</p>
+<div id="txt-leontief-interpretation" class="cell" data-execution_count="10">
+<p>Exemplos de leitura económica:</p>
+<ul>
+<li>Entre os efeitos de propagação de um choque em <strong>Transporte aéreo</strong>, o maior coeficiente fora da diagonal é para <strong>Refinação de petróleo</strong>, com <strong>l_ij = 0.4164</strong>.</li>
+<li>Entre os efeitos de propagação de um choque em <strong>Alojamento e restauração</strong>, o maior coeficiente fora da diagonal é para <strong>Alimentares, bebidas e tabaco</strong>, com <strong>l_ij = 0.1460</strong>.</li>
+</ul>
+<p>Isto sugere que estes setores estão relativamente mais expostos aos encadeamentos indiretos associados aos dois choques analisados.</p>
+</div>
+</section>
+<section id="quantidades-vs.-preços" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="quantidades-vs.-preços"><span class="header-section-number">5</span> Quantidades vs.&nbsp;preços</h2>
+<p>No bloco de quantidades, resolvemos:</p>
+<p><span class="math display">\[
+x = Ax + y,
+\]</span></p>
+<p>que determina o output necessário em cada setor para acomodar a procura final <span class="math inline">\(y\)</span>.</p>
+<p>Para preços, a lógica é dual: em vez de “quantidades produzidas”, olhamos para “custos unitários”. Para um setor produzido <span class="math inline">\(i \in S\)</span>, a condição de custo unitário é:</p>
+<p><span class="math display">\[
+p_i = \sum_{j \in S} a_{ji}p_j + a_{\text{TXS},i}p_{\text{TXS}} + a_{\text{IMP\_OTHER},i}p_{\text{IMP\_OTHER}} + v_i,
+\]</span></p>
+<p>onde:</p>
+<ul>
+<li><span class="math inline">\(v_i \equiv VA_i/x_i\)</span> é o valor acrescentado por unidade de output;</li>
+<li><span class="math inline">\(a_{\text{TXS},i}\)</span> e <span class="math inline">\(a_{\text{IMP\_OTHER},i}\)</span> são as cargas diretas das duas cunhas no setor <span class="math inline">\(i\)</span>;</li>
+<li><span class="math inline">\(p_{\text{TXS}}\)</span> e <span class="math inline">\(p_{\text{IMP\_OTHER}}\)</span> são preços exógenos dessas cunhas.</li>
+</ul>
+<p>Empilhando todos os setores produzidos:</p>
+<p><span class="math display">\[
+p_S = A_{SS}^{\top}p_S + A_{WS}^{\top}p_W + v_S,
+\]</span></p>
+<p>com <span class="math inline">\(p_W \equiv (p_{\text{TXS}}, p_{\text{IMP\_OTHER}})^\top\)</span> e <span class="math inline">\(v_S \equiv (VA_i/x_i)_{i \in S}\)</span>.</p>
+<p>Rearranjando:</p>
+<p><span class="math display">\[
+(I - A_{SS}^{\top})p_S = v_S + A_{WS}^{\top}p_W,
+\]</span></p>
+<p>e, quando a inversa existe,</p>
+<p><span class="math display">\[
+p_S = (I - A_{SS}^{\top})^{-1}(v_S + A_{WS}^{\top}p_W).
+\]</span></p>
+<p>Na Tabela 6 mostramos <strong><span class="math inline">\(\hat p_i\)</span></strong>, definido como a solução acima sob a normalização:</p>
+<p><span class="math display">\[
+p_{\text{TXS}} = p_{\text{IMP\_OTHER}} = 1
+\quad \Longrightarrow \quad
+\hat p_S \equiv (I - A_{SS}^{\top})^{-1}(v_S + A_{WS}^{\top}\mathbf{1}),
+\]</span></p>
+<p>isto é, para cada setor <span class="math inline">\(i\)</span>:</p>
+<p><span class="math display">\[
+\hat p_i = \left[(I - A_{SS}^{\top})^{-1}(v_S + A_{WS}^{\top}\mathbf{1})\right]_i.
+\]</span></p>
+<p>Assim, <code>p_hat</code> deve ser lido como um índice de custo unitário implícito no modelo, não como nível de preço observado diretamente nos dados.</p>
+<div class="cell" data-execution_count="11">
+<div id="tbl-price-components-targets" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="11">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-price-components-targets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabela&nbsp;6: Componentes diretas de custo e preço implícito (normalizado) para H51 e I.
+</figcaption>
+<div aria-describedby="tbl-price-components-targets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="10">
+<style type="text/css">
+#T_a8c42 th.col_heading.col0 {
+  text-align: left;
+}
+#T_a8c42 th.col_heading.col1 {
+  text-align: right;
+}
+#T_a8c42  th.col_heading.col2 {
+  text-align: right;
+}
+#T_a8c42  th.col_heading.col3 {
+  text-align: right;
+}
+#T_a8c42  th.col_heading.col4 {
+  text-align: right;
+}
+#T_a8c42_row0_col0, #T_a8c42_row1_col0 {
+  text-align: left;
+  font-size: 0.9em;
+}
+#T_a8c42_row0_col1, #T_a8c42_row0_col2, #T_a8c42_row0_col3, #T_a8c42_row0_col4, #T_a8c42_row1_col1, #T_a8c42_row1_col2, #T_a8c42_row1_col3, #T_a8c42_row1_col4 {
+  text-align: right;
+  font-size: 0.9em;
+}
+</style>
+
+<table id="T_a8c42" class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th id="T_a8c42_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">Setor</th>
+<th id="T_a8c42_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">v_share</th>
+<th id="T_a8c42_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">txs_direct</th>
+<th id="T_a8c42_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">imp_other_direct</th>
+<th id="T_a8c42_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">p_hat</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_a8c42_row0_col0" class="data row0 col0">Transporte aéreo (H51)</td>
+<td id="T_a8c42_row0_col1" class="data row0 col1">0.1201</td>
+<td id="T_a8c42_row0_col2" class="data row0 col2">0.0138</td>
+<td id="T_a8c42_row0_col3" class="data row0 col3">0.0033</td>
+<td id="T_a8c42_row0_col4" class="data row0 col4">0.7566</td>
+</tr>
+<tr class="even">
+<td id="T_a8c42_row1_col0" class="data row1 col0">Alojamento e restauração (I)</td>
+<td id="T_a8c42_row1_col1" class="data row1 col1">0.5230</td>
+<td id="T_a8c42_row1_col2" class="data row1 col2">0.0272</td>
+<td id="T_a8c42_row1_col3" class="data row1 col3">0.0001</td>
+<td id="T_a8c42_row1_col4" class="data row1 col4">0.9613</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>A Tabela 6 permite comparar a composição direta de custos entre os dois setores de interesse. Em termos pedagógicos:</p>
+<ul>
+<li><code>v_share</code> indica a parcela de valor acrescentado por unidade de output;</li>
+<li><code>txs_direct</code> e <code>imp_other_direct</code> mostram o peso direto das duas “cunhas” (impostos líquidos sobre produtos e outras importações);</li>
+<li><code>p_hat</code> resume o efeito total após propagação de custos na rede.</li>
+</ul>
+<div id="txt-price-table-interpretation" class="cell" data-execution_count="12">
+<p>Leitura de alguns números da Tabela 6:</p>
+<ul>
+<li>Em <strong>Transporte aéreo (H51)</strong>, a componente direta de valor acrescentado é <strong>0.120</strong>, com contribuições diretas de <strong>TXS = 0.014</strong> e <strong>IMP_OTHER = 0.003</strong>.</li>
+<li>Em <strong>Alojamento e restauração (I)</strong>, a componente direta de valor acrescentado é <strong>0.523</strong>, com contribuições diretas de <strong>TXS = 0.027</strong> e <strong>IMP_OTHER = 0.000</strong>.</li>
+<li>O preço implícito normalizado é <strong>0.757</strong> em transporte aéreo e <strong>0.961</strong> em alojamento/restauração.</li>
+<li>Interpretação económica de <code>p_hat</code>: este indicador resume o custo total unitário após propagação na rede input-output. Um <strong>p_hat</strong> mais elevado sugere maior intensidade de custos (diretos e indiretos) e maior sensibilidade do setor à transmissão de choques de custos vindos de fornecedores e cunhas fiscais/importadas.</li>
+</ul>
+</div>
+<div class="cell" data-execution_count="13">
+<div id="tbl-price-top-bottom" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="13">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-price-top-bottom-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabela&nbsp;7: Preço implícito normalizado: 5 maiores e 5 menores valores por setor.
+</figcaption>
+<div aria-describedby="tbl-price-top-bottom-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="12">
+<style type="text/css">
+#T_f3336 th.col_heading.col0 {
+  text-align: left;
+}
+#T_f3336  th.col_heading.col1 {
+  text-align: left;
+}
+#T_f3336 th.col_heading.col2 {
+  text-align: right;
+}
+#T_f3336_row0_col0, #T_f3336_row0_col1, #T_f3336_row1_col0, #T_f3336_row1_col1, #T_f3336_row2_col0, #T_f3336_row2_col1, #T_f3336_row3_col0, #T_f3336_row3_col1, #T_f3336_row4_col0, #T_f3336_row4_col1, #T_f3336_row5_col0, #T_f3336_row5_col1, #T_f3336_row6_col0, #T_f3336_row6_col1, #T_f3336_row7_col0, #T_f3336_row7_col1, #T_f3336_row8_col0, #T_f3336_row8_col1, #T_f3336_row9_col0, #T_f3336_row9_col1 {
+  text-align: left;
+}
+#T_f3336_row0_col2, #T_f3336_row1_col2, #T_f3336_row2_col2, #T_f3336_row3_col2, #T_f3336_row4_col2, #T_f3336_row5_col2, #T_f3336_row6_col2, #T_f3336_row7_col2, #T_f3336_row8_col2, #T_f3336_row9_col2 {
+  text-align: right;
+}
+</style>
+
+<table id="T_f3336" class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th id="T_f3336_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">Grupo</th>
+<th id="T_f3336_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Setor</th>
+<th id="T_f3336_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">p_hat</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_f3336_row0_col0" class="data row0 col0">Top 5</td>
+<td id="T_f3336_row0_col1" class="data row0 col1">Serviços domésticos das famílias (T)</td>
+<td id="T_f3336_row0_col2" class="data row0 col2">1.0000</td>
+</tr>
+<tr class="even">
+<td id="T_f3336_row1_col0" class="data row1 col0">Top 5</td>
+<td id="T_f3336_row1_col1" class="data row1 col1">Imobiliário (L)</td>
+<td id="T_f3336_row1_col2" class="data row1 col2">0.9919</td>
+</tr>
+<tr class="odd">
+<td id="T_f3336_row2_col0" class="data row2 col0">Top 5</td>
+<td id="T_f3336_row2_col1" class="data row2 col1">Educação (P)</td>
+<td id="T_f3336_row2_col2" class="data row2 col2">0.9878</td>
+</tr>
+<tr class="even">
+<td id="T_f3336_row3_col0" class="data row3 col0">Top 5</td>
+<td id="T_f3336_row3_col1" class="data row3 col1">Atividades financeiras e seguros (K)</td>
+<td id="T_f3336_row3_col2" class="data row3 col2">0.9873</td>
+</tr>
+<tr class="odd">
+<td id="T_f3336_row4_col0" class="data row4 col0">Top 5</td>
+<td id="T_f3336_row4_col1" class="data row4 col1">Serviços informáticos e informação (J62_63)</td>
+<td id="T_f3336_row4_col2" class="data row4 col2">0.9851</td>
+</tr>
+<tr class="even">
+<td id="T_f3336_row5_col0" class="data row5 col0">Bottom 5</td>
+<td id="T_f3336_row5_col1" class="data row5 col1">Refinação de petróleo (C19)</td>
+<td id="T_f3336_row5_col2" class="data row5 col2">0.3317</td>
+</tr>
+<tr class="odd">
+<td id="T_f3336_row6_col0" class="data row6 col0">Bottom 5</td>
+<td id="T_f3336_row6_col1" class="data row6 col1">Eletricidade, gás e vapor (D)</td>
+<td id="T_f3336_row6_col2" class="data row6 col2">0.6673</td>
+</tr>
+<tr class="even">
+<td id="T_f3336_row7_col0" class="data row7 col0">Bottom 5</td>
+<td id="T_f3336_row7_col1" class="data row7 col1">Transporte aéreo (H51)</td>
+<td id="T_f3336_row7_col2" class="data row7 col2">0.7566</td>
+</tr>
+<tr class="odd">
+<td id="T_f3336_row8_col0" class="data row8 col0">Bottom 5</td>
+<td id="T_f3336_row8_col1" class="data row8 col1">Transporte marítimo (H50)</td>
+<td id="T_f3336_row8_col2" class="data row8 col2">0.8179</td>
+</tr>
+<tr class="even">
+<td id="T_f3336_row9_col0" class="data row9 col0">Bottom 5</td>
+<td id="T_f3336_row9_col1" class="data row9 col1">Químicos (C20)</td>
+<td id="T_f3336_row9_col2" class="data row9 col2">0.8476</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div id="txt-price-figure-interpretation" class="cell" data-execution_count="14">
+<p>Leitura económica da tabela de extremos de <code>p_hat</code>:</p>
+<ul>
+<li>O maior valor de <code>p_hat</code> é de <strong>Serviços domésticos das famílias (T)</strong>, com <strong>1.000</strong>.</li>
+<li>O segundo maior valor é de <strong>Imobiliário (L)</strong>, com <strong>0.992</strong>.</li>
+<li>O menor valor é de <strong>Refinação de petróleo (C19)</strong>, com <strong>0.332</strong>.</li>
+<li>A amplitude entre o maior e o menor <code>p_hat</code> na amostra é <strong>0.668</strong>, o que evidencia heterogeneidade relevante na intensidade de custos setoriais.</li>
+</ul>
+</div>
+</section>
+<section id="exercícios-choques-em-transporte-aéreo-e-alojamentorestauração" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="exercícios-choques-em-transporte-aéreo-e-alojamentorestauração"><span class="header-section-number">6</span> Exercícios: choques em transporte aéreo e alojamento/restauração</h2>
+<p>Nesta secção aplicamos dois choques simples de procura final para ilustrar como a rede input-output propaga efeitos entre setores.</p>
+<p>Para cada cenário, definimos um vetor de choque <span class="math inline">\(\Delta y\)</span> (com apenas um setor chocado) e calculamos:</p>
+<p><span class="math display">\[
+\Delta x = L_{ext}\Delta y = (I-A_{ext})^{-1}\Delta y
+= \Delta y + (A_{ext} + A_{ext}^2 + A_{ext}^3 + \cdots)\Delta y.
+\]</span></p>
+<p>Assim, os resultados apresentados nas figuras são <strong>efeitos totais</strong> sobre o output setorial (<span class="math inline">\(\Delta x\)</span>), isto é, incluem:</p>
+<ul>
+<li>efeito direto (o próprio choque em procura final, <span class="math inline">\(\Delta y\)</span>);</li>
+<li>efeitos indiretos (propagação pela rede intermédia, <span class="math inline">\(\Delta x - \Delta y\)</span>).</li>
+</ul>
+<div class="cell" data-execution_count="15">
+<div id="tbl-shock-inputs" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="15">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-shock-inputs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabela&nbsp;8: Montantes dos choques e grandezas de referência nos dois setores analisados.
+</figcaption>
+<div aria-describedby="tbl-shock-inputs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="14">
+<style type="text/css">
+#T_40cb0 th.col_heading.col0 {
+  text-align: left;
+}
+#T_40cb0 th.col_heading.col1 {
+  text-align: right;
+}
+#T_40cb0  th.col_heading.col2 {
+  text-align: right;
+}
+#T_40cb0  th.col_heading.col3 {
+  text-align: right;
+}
+#T_40cb0  th.col_heading.col4 {
+  text-align: right;
+}
+#T_40cb0  th.col_heading.col5 {
+  text-align: right;
+}
+#T_40cb0_row0_col0, #T_40cb0_row1_col0 {
+  text-align: left;
+}
+#T_40cb0_row0_col1, #T_40cb0_row0_col2, #T_40cb0_row0_col3, #T_40cb0_row0_col4, #T_40cb0_row0_col5, #T_40cb0_row1_col1, #T_40cb0_row1_col2, #T_40cb0_row1_col3, #T_40cb0_row1_col4, #T_40cb0_row1_col5 {
+  text-align: right;
+}
+</style>
+
+<table id="T_40cb0" class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th id="T_40cb0_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">Setor</th>
+<th id="T_40cb0_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Output bruto x (milhões USD)</th>
+<th id="T_40cb0_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">Procura final y (milhões USD)</th>
+<th id="T_40cb0_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Valor acrescentado VA (milhões USD)</th>
+<th id="T_40cb0_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">Choque (%)</th>
+<th id="T_40cb0_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">Choque em procura final Δy (milhões USD)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_40cb0_row0_col0" class="data row0 col0">Transporte aéreo (H51)</td>
+<td id="T_40cb0_row0_col1" class="data row0 col1">5,564.00</td>
+<td id="T_40cb0_row0_col2" class="data row0 col2">4,757.12</td>
+<td id="T_40cb0_row0_col3" class="data row0 col3">668.14</td>
+<td id="T_40cb0_row0_col4" class="data row0 col4">-1.00</td>
+<td id="T_40cb0_row0_col5" class="data row0 col5">-47.57</td>
+</tr>
+<tr class="even">
+<td id="T_40cb0_row1_col0" class="data row1 col0">Alojamento e restauração (I)</td>
+<td id="T_40cb0_row1_col1" class="data row1 col1">25,907.77</td>
+<td id="T_40cb0_row1_col2" class="data row1 col2">22,715.49</td>
+<td id="T_40cb0_row1_col3" class="data row1 col3">13,548.95</td>
+<td id="T_40cb0_row1_col4" class="data row1 col4">1.00</td>
+<td id="T_40cb0_row1_col5" class="data row1 col5">227.15</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div id="txt-shock-inputs-interpretation" class="cell" data-execution_count="16">
+<p>Leitura económica da tabela acima:</p>
+<ul>
+<li>Em <strong>Transporte aéreo (H51)</strong>, o output bruto é <strong>5,564.0 milhões USD</strong>, a procura final líquida é <strong>4,757.1 milhões USD</strong> e o valor acrescentado é <strong>668.1 milhões USD</strong>; o choque aplicado é <strong>Δy = -47.6 milhões USD</strong>.</li>
+<li>Em <strong>Alojamento e restauração (I)</strong>, o output bruto é <strong>25,907.8 milhões USD</strong>, a procura final líquida é <strong>22,715.5 milhões USD</strong> e o valor acrescentado é <strong>13,549.0 milhões USD</strong>; o choque aplicado é <strong>Δy = 227.2 milhões USD</strong>.</li>
+<li>Como os choques têm montantes absolutos diferentes, a comparação dos impactos nas figuras deve considerar não só os multiplicadores, mas também a escala inicial de cada <span class="math inline">\(\Delta y\)</span>.</li>
+</ul>
+</div>
+<section id="cenário-1-choque-de--1-na-procura-final-de-transporte-aéreo" class="level3" data-number="6.1">
+<h3 data-number="6.1" class="anchored" data-anchor-id="cenário-1-choque-de--1-na-procura-final-de-transporte-aéreo"><span class="header-section-number">6.1</span> Cenário 1: choque de -1% na procura final de transporte aéreo</h3>
+<div id="cell-fig-shock-h51" class="cell" data-execution_count="17">
+<div id="fig-shock-h51" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-shock-h51-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script type="text/javascript">if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.3.1.min.js" integrity="sha256-4rD3fugVb/nVJYUv5Ky3v+fYXoouHaBSP20WIJuEiWg=" crossorigin="anonymous"></script>                <div id="54106fb1-50db-43ce-9db9-6eb10864fbed" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("54106fb1-50db-43ce-9db9-6eb10864fbed")) {                    Plotly.newPlot(                        "54106fb1-50db-43ce-9db9-6eb10864fbed",                        [{"hovertemplate":"\u0394x (milh\u00f5es USD)=%{x}\u003cbr\u003eSetor=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"","marker":{"color":"#636efa","pattern":{"shape":""}},"name":"","orientation":"h","showlegend":false,"textposition":"auto","x":{"dtype":"f8","bdata":"+c\u002feRUg5SMBATDhIuc4zwBX0axzGoCPAGsve2HL6H8B3tdVP9wkZwJRFXH05Iw\u002fALKjhsO6gDsBweID8\u002fcQMwBZGVQX9+QLAeivrKfhuAcA7U5L+Q\u002fH8v6DfmyMI0\u002fy\u002feZcTRANL+7\u002f7XaA76+f4v7W8O4LfkPe\u002f"},"xaxis":"x","y":["Transporte a\u00e9reo","Refina\u00e7\u00e3o de petr\u00f3leo","Armazenagem e apoio ao transporte","Com\u00e9rcio","Atividades administrativas e apoio","Atividades financeiras e seguros","Atividades profissionais e cient\u00edficas","Eletricidade, g\u00e1s e vapor","Qu\u00edmicos","Impostos l\u00edquidos sobre produtos","Servi\u00e7os inform\u00e1ticos e informa\u00e7\u00e3o","Mobili\u00e1rio e outras ind\u00fastrias","Transporte terrestre","Alojamento e restaura\u00e7\u00e3o","Outro equipamento de transporte"],"yaxis":"y","type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"geo":{"bgcolor":"white","lakecolor":"white","landcolor":"white","showlakes":true,"showland":true,"subunitcolor":"#C8D4E3"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"light"},"margin":{"b":0,"l":0,"r":0,"t":30},"paper_bgcolor":"white","plot_bgcolor":"white","polar":{"angularaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""},"bgcolor":"white","radialaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"yaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"zaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"ternary":{"aaxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"baxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"bgcolor":"white","caxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""}},"title":{"x":0.05},"xaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2}}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"\u0394x (milh\u00f5es USD)"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Setor"}},"legend":{"tracegroupgap":0,"title":{"text":""}},"title":{"text":"Impactos setoriais no output: choque de -1% em transporte a\u00e9reo","x":0.5},"barmode":"relative","margin":{"t":90}},                        {"responsive": true}                    ).then(function(){
+                            
+var gd = document.getElementById('54106fb1-50db-43ce-9db9-6eb10864fbed');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-shock-h51-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figura&nbsp;1: Cenário 1 (transporte aéreo): impactos no output (top 15 setores).
+</figcaption>
+</figure>
+</div>
+</div>
+<div id="txt-shock-h51-interpretation" class="cell" data-execution_count="18">
+<p>Leitura económica da figura do cenário 1:</p>
+<ul>
+<li>A figura mostra <strong>efeitos totais</strong> (<span class="math inline">\(\Delta x\)</span>), calculados por <span class="math inline">\(\Delta x = (I-A_{ext})^{-1}\Delta y\)</span>, e não apenas a componente direta.</li>
+<li>No setor de origem (<strong>Transporte aéreo</strong>), o efeito direto é <strong>Δy = -47.6 milhões USD</strong> e a componente indireta adicional é <strong>-0.9 milhões USD</strong>.</li>
+<li>O maior efeito indireto (excluindo o setor de origem) ocorre em <strong>Refinação de petróleo</strong>, com <strong>Δx = -19.8 milhões USD</strong>.</li>
+<li>No agregado dos setores produzidos, o efeito total é <strong>-128.2 milhões USD</strong>, dos quais <strong>-80.6 milhões USD</strong> resultam de propagação indireta na rede.</li>
+<li>No total da economia setorial modelada, há <strong>49</strong> setores com impacto negativo e <strong>0</strong> com impacto positivo, o que mostra que um choque localizado pode gerar respostas heterogéneas.</li>
+</ul>
+</div>
+</section>
+<section id="cenário-2-choque-de-1-na-procura-final-de-alojamento-e-restauração" class="level3" data-number="6.2">
+<h3 data-number="6.2" class="anchored" data-anchor-id="cenário-2-choque-de-1-na-procura-final-de-alojamento-e-restauração"><span class="header-section-number">6.2</span> Cenário 2: choque de +1% na procura final de alojamento e restauração</h3>
+<div id="cell-fig-shock-i" class="cell" data-execution_count="19">
+<div id="fig-shock-i" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-shock-i-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script type="text/javascript">if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.3.1.min.js" integrity="sha256-4rD3fugVb/nVJYUv5Ky3v+fYXoouHaBSP20WIJuEiWg=" crossorigin="anonymous"></script>                <div id="fee36026-a47d-4efb-9b96-4933bf7edeb3" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("fee36026-a47d-4efb-9b96-4933bf7edeb3")) {                    Plotly.newPlot(                        "fee36026-a47d-4efb-9b96-4933bf7edeb3",                        [{"hovertemplate":"\u0394x (milh\u00f5es USD)=%{x}\u003cbr\u003eSetor=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"","marker":{"color":"#636efa","pattern":{"shape":""}},"name":"","orientation":"h","showlegend":false,"textposition":"auto","x":{"dtype":"f8","bdata":"RMpk5gyXEkDFE3B1GnIUQCfCYuEGQhlAUNm2gmUqH0DvhA6nQ3khQHj6kS4nJiJAOUPmRkcuJkDXD1qomU8mQHqswoZUsypAmjZraxu0LUARyAj1rfMtQCMfocLw2TpAxqAqsHcJPUAo36iK5JVAQD\u002fqtzbBzWxA"},"xaxis":"x","y":["Transporte terrestre","Servi\u00e7os inform\u00e1ticos e informa\u00e7\u00e3o","Constru\u00e7\u00e3o","Refina\u00e7\u00e3o de petr\u00f3leo","Imobili\u00e1rio","Qu\u00edmicos","Atividades financeiras e seguros","Impostos l\u00edquidos sobre produtos","Atividades administrativas e apoio","Agricultura e ca\u00e7a","Atividades profissionais e cient\u00edficas","Eletricidade, g\u00e1s e vapor","Com\u00e9rcio","Alimentares, bebidas e tabaco","Alojamento e restaura\u00e7\u00e3o"],"yaxis":"y","type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"geo":{"bgcolor":"white","lakecolor":"white","landcolor":"white","showlakes":true,"showland":true,"subunitcolor":"#C8D4E3"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"light"},"margin":{"b":0,"l":0,"r":0,"t":30},"paper_bgcolor":"white","plot_bgcolor":"white","polar":{"angularaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""},"bgcolor":"white","radialaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"yaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"zaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"ternary":{"aaxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"baxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"bgcolor":"white","caxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""}},"title":{"x":0.05},"xaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2}}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"\u0394x (milh\u00f5es USD)"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Setor"}},"legend":{"tracegroupgap":0,"title":{"text":""}},"title":{"text":"Impactos setoriais no output: choque de +1% em alojamento e restaura\u00e7\u00e3o","x":0.5},"barmode":"relative","margin":{"t":90}},                        {"responsive": true}                    ).then(function(){
+                            
+var gd = document.getElementById('fee36026-a47d-4efb-9b96-4933bf7edeb3');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-shock-i-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figura&nbsp;2: Cenário 2 (alojamento e restauração): impactos no output (top 15 setores).
+</figcaption>
+</figure>
+</div>
+</div>
+<div id="txt-shock-i-interpretation" class="cell" data-execution_count="20">
+<p>Leitura económica da figura do cenário 2:</p>
+<ul>
+<li>A figura mostra <strong>efeitos totais</strong> (<span class="math inline">\(\Delta x\)</span>), calculados por <span class="math inline">\(\Delta x = (I-A_{ext})^{-1}\Delta y\)</span>, e não apenas a componente direta.</li>
+<li>No setor de origem (<strong>Alojamento e restauração</strong>), o efeito direto é <strong>Δy = 227.2 milhões USD</strong> e a componente indireta adicional é <strong>3.3 milhões USD</strong>.</li>
+<li>O maior efeito indireto (excluindo o setor de origem) surge em <strong>Alimentares, bebidas e tabaco</strong>, com <strong>Δx = 33.2 milhões USD</strong>.</li>
+<li>No agregado dos setores produzidos, o efeito total é <strong>466.5 milhões USD</strong>, dos quais <strong>239.4 milhões USD</strong> resultam de propagação indireta na rede.</li>
+<li>Neste cenário, observam-se <strong>49</strong> setores com impacto positivo e <strong>0</strong> com impacto negativo, reforçando que os efeitos de um choque de procura se distribuem de forma desigual ao longo da cadeia produtiva.</li>
+</ul>
+</div>
+</section>
+</section>
+<section id="limitações" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="limitações"><span class="header-section-number">7</span> Limitações</h2>
+<ul>
+<li>A análise é estática e de curto prazo: os coeficientes técnicos são fixos.</li>
+<li>Não há substituição entre inputs, restrições de capacidade nem respostas comportamentais.</li>
+<li>Os choques são exercícios contábeis de propagação na rede produtiva, não previsões estruturais completas.</li>
+</ul>
+</section>
+<section id="conclusão" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="conclusão"><span class="header-section-number">8</span> Conclusão</h2>
+<p>A matriz técnica e a inversa de Leontief fornecem uma forma transparente de ligar choques de procura final a efeitos totais na produção setorial. Para ensino introdutório, os exercícios em transporte aéreo e alojamento/restauração ajudam a visualizar encadeamentos produtivos e a diferença entre efeitos diretos e indiretos.</p>
+<div id="txt-conclusion-numbers" class="cell" data-execution_count="21">
+<p>Leitura numérica dos resultados principais:</p>
+<ul>
+<li>O choque de <strong>-1%</strong> na procura final de <strong>Transporte aéreo</strong> corresponde a <strong>Δy = -47.6 milhões USD</strong> e implica uma variação total no output de <strong>-128.2 milhões USD</strong> (multiplicador agregado <strong>2.695</strong>).</li>
+<li>O choque de <strong>+1%</strong> na procura final de <strong>Alojamento e restauração</strong> corresponde a <strong>Δy = 227.2 milhões USD</strong> e implica uma variação total no output de <strong>466.5 milhões USD</strong> (multiplicador agregado <strong>2.054</strong>).</li>
+<li>No cenário de transporte aéreo, o maior efeito de propagação (excluindo o próprio setor) surge em <strong>Refinação de petróleo</strong>, com <strong>Δx = -19.8 milhões USD</strong>.</li>
+<li>No cenário de alojamento/restauração, o maior efeito de propagação (excluindo o próprio setor) surge em <strong>Alimentares, bebidas e tabaco</strong>, com <strong>Δx = 33.2 milhões USD</strong>.</li>
+</ul>
+<p>Estes números reforçam a intuição económica: mesmo choques concentrados num único setor geram efeitos distribuídos por vários setores devido às ligações de input-output.</p>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiada");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiada");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

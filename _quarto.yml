@@ -7,6 +7,7 @@ project:
     - index.qmd
     - 01_portugal_eurostat.qmd
     - 02_portugal_contas_nacionais_plus.qmd
+    - 03_portugal_iot_leontief.qmd
 
 website:
   title: "Introdução à Macroeconomia: Dados e Estatísticas de Portugal"
