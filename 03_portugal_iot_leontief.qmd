@@ -25,6 +25,15 @@ Para estudantes de licenciatura em Introdução à Macroeconomia, a ideia centra
 
 Neste contexto, vamos trabalhar com contas em valor (milhões de USD), não em quantidades físicas. Assim, cada resultado deve ser lido como um exercício de contabilidade económica e propagação setorial, útil para organizar o raciocínio macro, antes de modelos mais avançados com preços relativos, substituição e dinâmica intertemporal.
 
+Uma nota importante sobre as linhas especiais da base OECD `ttl`:
+
+- `TXS_INT_FNL` representa **impostos líquidos de subsídios sobre produtos** alocados aos usos intermédios e finais (conceito `TLS` no ReadMe da ICIO);
+- `IMP_OTHER` representa **outras importações** (um ajustamento de importações fora das linhas setoriais `TTL_*`).
+
+No módulo, estas duas linhas são tratadas como “setores fictícios” que vendem a todos os setores, mas não compram inputs intermédios, para manter a leitura económica do sistema de Leontief com dados raw.
+
+Referência principal da fonte e documentação: [OECD Inter-Country Input-Output (ICIO)](https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html).
+
 Os objetivos são:
 
 - construir o sistema
@@ -37,12 +46,13 @@ Os objetivos são:
 - ligar os sistemas de quantidades e preços;
 - estudar dois exercícios de política de procura final:
   - choque de `-1%` em `H51` (Air transport),
-  - choque de `+1%` em `I` (Accommodation and food service activities).
+  - choque de `+1%` em `I` (Accommodation and food service activities; aqui `I` é código setorial, não investimento).
 
 ```{python}
 #| label: setup
 #| include: false
 import io
+import json
 import re
 import zipfile
 from pathlib import Path
@@ -50,6 +60,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import requests
 
 OECD_ZIP_URL = "https://stats.oecd.org/wbos/fileview2.aspx?IDFile=67d903bc-edff-463c-aeeb-52d711731221"
@@ -444,6 +455,162 @@ multiplier_summary = pd.DataFrame(
         ],
     }
 )
+
+v_share = price_components["v_share"].astype(float).reindex(S)
+
+scenario_specs = [
+    ("H51", TARGET_SHOCKS["H51"], dy_h51, shock_h51),
+    ("I", TARGET_SHOCKS["I"], dy_i, shock_i),
+]
+
+scenario_rows = []
+for code, shock_pct, dy_vec, shock_tbl in scenario_specs:
+    dx_vec = L_ext @ dy_vec
+    others = shock_tbl[shock_tbl["sector"] != code]
+
+    delta_y = float(dy_vec.loc[code])
+    delta_x_total = float(dx_vec.loc[S].sum())
+    delta_va = float((v_share * dx_vec.loc[S]).sum())
+    delta_txs = float(dx_vec.loc["TXS"])
+    delta_imp_other = float(dx_vec.loc["IMP_OTHER"])
+
+    output_multiplier = np.nan if np.isclose(delta_y, 0.0) else delta_x_total / delta_y
+    va_multiplier = np.nan if np.isclose(delta_y, 0.0) else delta_va / delta_y
+    txs_per_delta_y = np.nan if np.isclose(delta_y, 0.0) else delta_txs / delta_y
+    imp_other_per_delta_y = np.nan if np.isclose(delta_y, 0.0) else delta_imp_other / delta_y
+    va_share_in_delta_x = np.nan if np.isclose(delta_x_total, 0.0) else delta_va / delta_x_total
+
+    scenario_rows.append(
+        {
+            "setor_codigo": code,
+            "setor": sector_label(code),
+            "choque_pct": 100 * shock_pct,
+            "delta_y": delta_y,
+            "delta_x_total": delta_x_total,
+            "delta_va": delta_va,
+            "delta_txs": delta_txs,
+            "delta_imp_other": delta_imp_other,
+            "output_multiplier": output_multiplier,
+            "va_multiplier": va_multiplier,
+            "txs_per_delta_y": txs_per_delta_y,
+            "imp_other_per_delta_y": imp_other_per_delta_y,
+            "va_share_in_delta_x": va_share_in_delta_x,
+            "n_remaining_sectors": int(len(others)),
+            "n_pos_remaining": int((others["delta_x"] > 0).sum()),
+            "n_neg_remaining": int((others["delta_x"] < 0).sum()),
+            "n_zero_remaining": int((others["delta_x"] == 0).sum()),
+        }
+    )
+
+scenario_summary = pd.DataFrame(scenario_rows)
+scenario_lookup = scenario_summary.set_index("setor_codigo")
+
+L_prod = L_ext.loc[S, S].astype(float)
+backward_linkages = L_prod.sum(axis=0).sort_values(ascending=False).rename("backward_linkage")
+forward_linkages = L_prod.sum(axis=1).sort_values(ascending=False).rename("forward_linkage")
+
+backward_top10 = backward_linkages.head(10).rename_axis("sector").reset_index()
+backward_top10["Setor"] = backward_top10["sector"].map(lambda c: f"{sector_label(c)} ({c})")
+backward_top10 = backward_top10[["Setor", "backward_linkage"]]
+
+forward_top10 = forward_linkages.head(10).rename_axis("sector").reset_index()
+forward_top10["Setor"] = forward_top10["sector"].map(lambda c: f"{sector_label(c)} ({c})")
+forward_top10 = forward_top10[["Setor", "forward_linkage"]]
+
+SANDBOX_SHOCK_GRID = [-1.0, 1.0]
+sandbox_top_rows = []
+sandbox_summary_rows = []
+
+for shock_sector in S:
+    for shock_pct in SANDBOX_SHOCK_GRID:
+        dy_tmp = pd.Series(0.0, index=y_ext.index)
+        dy_tmp.loc[shock_sector] = (shock_pct / 100.0) * float(y_ext.loc[shock_sector])
+
+        dx_tmp = L_ext @ dy_tmp
+        rel_tmp = (dx_tmp / x_ext.replace(0, np.nan)).fillna(0.0)
+
+        tmp = pd.DataFrame(
+            {
+                "sector": S,
+                "delta_x": dx_tmp.loc[S].values,
+                "delta_x_pct": 100 * rel_tmp.loc[S].values,
+            }
+        )
+        tmp["abs_delta_x"] = tmp["delta_x"].abs()
+        tmp = tmp.sort_values("abs_delta_x", ascending=False).head(15)
+        tmp["shock_sector"] = shock_sector
+        tmp["shock_pct"] = shock_pct
+        sandbox_top_rows.append(tmp[["shock_sector", "shock_pct", "sector", "delta_x", "delta_x_pct", "abs_delta_x"]])
+
+        delta_y_tmp = float(dy_tmp.loc[shock_sector])
+        delta_x_total_tmp = float(dx_tmp.loc[S].sum())
+        delta_va_tmp = float((v_share * dx_tmp.loc[S]).sum())
+        delta_txs_tmp = float(dx_tmp.loc["TXS"])
+        delta_imp_other_tmp = float(dx_tmp.loc["IMP_OTHER"])
+
+        output_mult_tmp = np.nan if np.isclose(delta_y_tmp, 0.0) else delta_x_total_tmp / delta_y_tmp
+        va_mult_tmp = np.nan if np.isclose(delta_y_tmp, 0.0) else delta_va_tmp / delta_y_tmp
+        tax_wedge_tmp = np.nan if np.isclose(delta_y_tmp, 0.0) else delta_txs_tmp / delta_y_tmp
+        imp_leak_tmp = np.nan if np.isclose(delta_y_tmp, 0.0) else delta_imp_other_tmp / delta_y_tmp
+
+        sandbox_summary_rows.append(
+            {
+                "shock_sector": shock_sector,
+                "shock_pct": shock_pct,
+                "delta_y": delta_y_tmp,
+                "delta_x_total": delta_x_total_tmp,
+                "delta_va": delta_va_tmp,
+                "delta_txs": delta_txs_tmp,
+                "delta_imp_other": delta_imp_other_tmp,
+                "output_multiplier": output_mult_tmp,
+                "va_multiplier": va_mult_tmp,
+                "tax_wedge_ratio": tax_wedge_tmp,
+                "import_leakage_ratio": imp_leak_tmp,
+            }
+        )
+
+sandbox_top_impacts = pd.concat(sandbox_top_rows, ignore_index=True)
+sandbox_summary = pd.DataFrame(sandbox_summary_rows)
+sandbox_summary["scenario_label"] = sandbox_summary.apply(
+    lambda r: f"{sector_label(r['shock_sector'])} ({r['shock_sector']}) | choque {r['shock_pct']:+.1f}%",
+    axis=1,
+)
+
+A_ss = A_ext.loc[S, S].astype(float)
+A_ws = A_ext.loc[["TXS", "IMP_OTHER"], S].astype(float)
+M_price = np.eye(len(S)) - A_ss.values.T
+
+price_inverse_ok = True
+try:
+    price_propagator_values = np.linalg.inv(M_price)
+except np.linalg.LinAlgError:
+    price_inverse_ok = False
+    price_propagator_values = np.linalg.pinv(M_price)
+
+price_propagator = pd.DataFrame(price_propagator_values, index=S, columns=S)
+
+delta_p_w = pd.Series({"TXS": 0.0, "IMP_OTHER": 0.10})
+rhs_import_case = A_ws.values.T @ delta_p_w.loc[["TXS", "IMP_OTHER"]].values
+delta_p_s = pd.Series(price_propagator.values @ rhs_import_case, index=S, name="delta_p_hat")
+
+import_cost_case = pd.DataFrame({"sector": S, "delta_p_hat": delta_p_s.values})
+import_cost_case["p_hat_base"] = price_components.loc[S, "p_hat"].values
+import_cost_case["delta_p_hat_pct_base"] = (
+    100 * import_cost_case["delta_p_hat"] / import_cost_case["p_hat_base"].replace(0, np.nan)
+)
+import_cost_case["abs_delta_p_hat"] = import_cost_case["delta_p_hat"].abs()
+import_cost_case_top15 = import_cost_case.sort_values("abs_delta_p_hat", ascending=False).head(15).copy()
+import_cost_case_top15["Setor"] = import_cost_case_top15["sector"].map(lambda c: f"{sector_label(c)} ({c})")
+```
+
+```{python}
+#| label: txt-data-metadata
+#| echo: false
+#| output: asis
+print(
+    f"**Dados:** OECD Input-Output Tables (TTL, raw), Portugal, ano = {int(latest_year)}, "
+    f"preços correntes; unidades: milhões de USD (fonte carregada: `{source_file}`)."
+)
 ```
 
 ## Construção de $x$, $A$ e $y$ com setores fictícios
@@ -467,6 +634,12 @@ O tratamento de `TXS` e `IMP_OTHER` é importante para manter a interpretação 
 - `TXS` (impostos líquidos sobre produtos) e `IMP_OTHER` (outras importações) entram como **linhas vendedoras**. Isto significa que contam como custos por unidade de produção dos setores compradores.
 - Ao mesmo tempo, são definidos como setores que **não compram inputs intermédios** no sistema (`A_ext[:, "TXS"] = 0` e `A_ext[:, "IMP_OTHER"] = 0`).
 - Em termos práticos, funcionam como “cunhas” (wedges) contabilísticas: afetam custos e preços de produção, mas não criam rondas adicionais de procura intermédia como um setor produtivo convencional.
+
+::: {.callout-note}
+## Nota sobre importações no modelo
+`IMPO` entra na procura final como termo negativo (procura final líquida).  
+`IMP_OTHER` entra como setor fictício vendedor: funciona como cunha de custo importado por unidade de produção e não gera novas rondas intermédias, porque não compra inputs no sistema.
+:::
 
 ```{python}
 #| label: tbl-system-dims
@@ -497,7 +670,7 @@ tbl_dims = pd.DataFrame(
 )
 ```
 
-A Tabela 3 é um teste de coerência interna do sistema. A identidade $x = Ax + y$ deve ser satisfeita (até erro numérico de arredondamento) se a construção de $A_{ext}$, $x_{ext}$ e $y_{ext}$ estiver correta. Mostramos setores económicos (`H51` e `I`) e os dois setores fictícios (`TXS` e `IMP_OTHER`) para confirmar que a lógica é consistente em todos os blocos do modelo.
+A Tabela 2 é um teste de coerência interna do sistema. A identidade $x = Ax + y$ deve ser satisfeita (até erro numérico de arredondamento) se a construção de $A_{ext}$, $x_{ext}$ e $y_{ext}$ estiver correta. Mostramos setores económicos (`H51` e `I`) e os dois setores fictícios (`TXS` e `IMP_OTHER`) para confirmar que a lógica é consistente em todos os blocos do modelo.
 
 ```{python}
 #| label: tbl-equation-check
@@ -616,8 +789,8 @@ $$
 
 Isto inclui:
 
-- efeito direto (primeira ronda de produção),
-- efeitos indiretos (rondas sucessivas via compras intermédias).
+- efeito de 1.ª ronda (produção intermédia direta, $A\Delta y$),
+- efeitos indiretos (rondas sucessivas, $A^2\Delta y + A^3\Delta y + \cdots$).
 
 Leituras úteis:
 
@@ -790,6 +963,7 @@ $$
 $$
 
 Assim, `p_hat` deve ser lido como um índice de custo unitário implícito no modelo, não como nível de preço observado diretamente nos dados.
+Como os coeficientes técnicos são fixos (sem substituição) e trabalhamos em valores monetários, `p_hat` deve ser interpretado como índice de propagação de custos na rede, e não como um modelo completo de preços de equilíbrio.
 
 ```{python}
 #| label: tbl-price-components-targets
@@ -905,8 +1079,8 @@ $$
 
 Assim, os resultados apresentados nas figuras são **efeitos totais** sobre o output setorial ($\Delta x$), isto é, incluem:
 
-- efeito direto (o próprio choque em procura final, $\Delta y$);
-- efeitos indiretos (propagação pela rede intermédia, $\Delta x - \Delta y$).
+- efeito inicial (o próprio choque em procura final, $\Delta y$);
+- efeito de 1.ª ronda e efeitos indiretos subsequentes (propagação pela rede intermédia, $\Delta x - \Delta y$).
 
 ```{python}
 #| label: tbl-shock-inputs
@@ -914,14 +1088,14 @@ Assim, os resultados apresentados nas figuras são **efeitos totais** sobre o ou
 shock_inputs = pd.DataFrame(
     {
         "Setor": [f"{sector_label('H51')} (H51)", f"{sector_label('I')} (I)"],
-        "Output bruto x (milhões USD)": [float(x_ext.loc["H51"]), float(x_ext.loc["I"])],
-        "Procura final y (milhões USD)": [float(y_ext.loc["H51"]), float(y_ext.loc["I"])],
-        "Valor acrescentado VA (milhões USD)": [
+        "Output bruto x (10^6USD)": [float(x_ext.loc["H51"]), float(x_ext.loc["I"])],
+        "Procura final y (10^6USD)": [float(y_ext.loc["H51"]), float(y_ext.loc["I"])],
+        "Valor acrescentado VA (10^6USD)": [
             float(raw_table.loc["VALU", "H51"]),
             float(raw_table.loc["VALU", "I"]),
         ],
         "Choque (%)": [100 * TARGET_SHOCKS["H51"], 100 * TARGET_SHOCKS["I"]],
-        "Choque em procura final Δy (milhões USD)": [float(dy_h51.loc["H51"]), float(dy_i.loc["I"])],
+        "Choque em procura final Δy (10^6USD)": [float(dy_h51.loc["H51"]), float(dy_i.loc["I"])],
     }
 )
 
@@ -929,21 +1103,21 @@ shock_inputs = pd.DataFrame(
     shock_inputs.style.hide(axis="index")
     .format(
         {
-            "Output bruto x (milhões USD)": "{:,.2f}",
-            "Procura final y (milhões USD)": "{:,.2f}",
-            "Valor acrescentado VA (milhões USD)": "{:,.2f}",
+            "Output bruto x (10^6USD)": "{:,.2f}",
+            "Procura final y (10^6USD)": "{:,.2f}",
+            "Valor acrescentado VA (10^6USD)": "{:,.2f}",
             "Choque (%)": "{:.2f}",
-            "Choque em procura final Δy (milhões USD)": "{:,.2f}",
+            "Choque em procura final Δy (10^6USD)": "{:,.2f}",
         }
     )
     .set_properties(subset=["Setor"], **{"text-align": "left"})
     .set_properties(
         subset=[
-            "Output bruto x (milhões USD)",
-            "Procura final y (milhões USD)",
-            "Valor acrescentado VA (milhões USD)",
+            "Output bruto x (10^6USD)",
+            "Procura final y (10^6USD)",
+            "Valor acrescentado VA (10^6USD)",
             "Choque (%)",
-            "Choque em procura final Δy (milhões USD)",
+            "Choque em procura final Δy (10^6USD)",
         ],
         **{"text-align": "right"},
     )
@@ -997,7 +1171,7 @@ fig = px.bar(
     orientation="h",
     template="plotly_white",
     title="Impactos setoriais no output: choque de -1% em transporte aéreo",
-    labels={"delta_x": "Δx (milhões USD)", "sector_label": "Setor"},
+    labels={"delta_x": "Δx (10^6USD)", "sector_label": "Setor"},
 )
 fig.update_layout(title_x=0.5, legend_title_text="", margin=dict(t=90))
 fig
@@ -1008,23 +1182,25 @@ fig
 #| echo: false
 #| output: asis
 dx_h51 = L_ext @ dy_h51
-h51_own = shock_h51.loc[shock_h51["sector"] == "H51"].iloc[0]
 h51_spill = shock_h51[shock_h51["sector"] != "H51"].iloc[0]
-h51_neg = int((shock_h51["delta_x"] < 0).sum())
-h51_pos = int((shock_h51["delta_x"] > 0).sum())
-h51_direct = float(dy_h51.loc["H51"])
-h51_indirect_own = float(dx_h51.loc["H51"] - h51_direct)
+h51_others = shock_h51[shock_h51["sector"] != "H51"].copy()
+h51_neg_others = int((h51_others["delta_x"] < 0).sum())
+h51_pos_others = int((h51_others["delta_x"] > 0).sum())
+h51_zero_others = int((h51_others["delta_x"] == 0).sum())
+h51_n_others = int(len(h51_others))
+h51_initial = float(dy_h51.loc["H51"])
+h51_indirect_own = float(dx_h51.loc["H51"] - h51_initial)
 h51_total_prod = float(dx_h51.loc[S].sum())
 h51_indirect_prod = float(h51_total_prod - dy_h51.loc[S].sum())
 
 txt = f"""
 Leitura económica da figura do cenário 1:
 
-- A figura mostra **efeitos totais** ($\Delta x$), calculados por $\Delta x = (I-A_{{ext}})^{{-1}}\Delta y$, e não apenas a componente direta.
-- No setor de origem (**{sector_label('H51')}**), o efeito direto é **Δy = {h51_direct:,.1f} milhões USD** e a componente indireta adicional é **{h51_indirect_own:,.1f} milhões USD**.
+- A figura mostra **efeitos totais** ($\Delta x$), calculados por $\Delta x = (I-A_{{ext}})^{{-1}}\Delta y$, e não apenas a componente inicial.
+- No setor de origem (**{sector_label('H51')}**), o efeito inicial é **Δy = {h51_initial:,.1f} milhões USD** e a componente indireta adicional é **{h51_indirect_own:,.1f} milhões USD**.
 - O maior efeito indireto (excluindo o setor de origem) ocorre em **{sector_label(h51_spill['sector'])}**, com **Δx = {h51_spill['delta_x']:,.1f} milhões USD**.
 - No agregado dos setores produzidos, o efeito total é **{h51_total_prod:,.1f} milhões USD**, dos quais **{h51_indirect_prod:,.1f} milhões USD** resultam de propagação indireta na rede.
-- No total da economia setorial modelada, há **{h51_neg}** setores com impacto negativo e **{h51_pos}** com impacto positivo, o que mostra que um choque localizado pode gerar respostas heterogéneas.
+- Entre os **{h51_n_others} setores restantes (excluindo o setor de origem)**, observam-se **{h51_neg_others}** impactos negativos, **{h51_pos_others}** positivos e **{h51_zero_others}** nulos. As magnitudes dos efeitos são heterogéneas entre setores.
 """
 print(txt)
 ```
@@ -1043,7 +1219,7 @@ fig = px.bar(
     orientation="h",
     template="plotly_white",
     title="Impactos setoriais no output: choque de +1% em alojamento e restauração",
-    labels={"delta_x": "Δx (milhões USD)", "sector_label": "Setor"},
+    labels={"delta_x": "Δx (10^6USD)", "sector_label": "Setor"},
 )
 fig.update_layout(title_x=0.5, legend_title_text="", margin=dict(t=90))
 fig
@@ -1054,23 +1230,687 @@ fig
 #| echo: false
 #| output: asis
 dx_i = L_ext @ dy_i
-i_own = shock_i.loc[shock_i["sector"] == "I"].iloc[0]
 i_spill = shock_i[shock_i["sector"] != "I"].iloc[0]
-i_neg = int((shock_i["delta_x"] < 0).sum())
-i_pos = int((shock_i["delta_x"] > 0).sum())
-i_direct = float(dy_i.loc["I"])
-i_indirect_own = float(dx_i.loc["I"] - i_direct)
+i_others = shock_i[shock_i["sector"] != "I"].copy()
+i_neg_others = int((i_others["delta_x"] < 0).sum())
+i_pos_others = int((i_others["delta_x"] > 0).sum())
+i_zero_others = int((i_others["delta_x"] == 0).sum())
+i_n_others = int(len(i_others))
+i_initial = float(dy_i.loc["I"])
+i_indirect_own = float(dx_i.loc["I"] - i_initial)
 i_total_prod = float(dx_i.loc[S].sum())
 i_indirect_prod = float(i_total_prod - dy_i.loc[S].sum())
 
 txt = f"""
 Leitura económica da figura do cenário 2:
 
-- A figura mostra **efeitos totais** ($\Delta x$), calculados por $\Delta x = (I-A_{{ext}})^{{-1}}\Delta y$, e não apenas a componente direta.
-- No setor de origem (**{sector_label('I')}**), o efeito direto é **Δy = {i_direct:,.1f} milhões USD** e a componente indireta adicional é **{i_indirect_own:,.1f} milhões USD**.
+- A figura mostra **efeitos totais** ($\Delta x$), calculados por $\Delta x = (I-A_{{ext}})^{{-1}}\Delta y$, e não apenas a componente inicial.
+- No setor de origem (**{sector_label('I')}**), o efeito inicial é **Δy = {i_initial:,.1f} milhões USD** e a componente indireta adicional é **{i_indirect_own:,.1f} milhões USD**.
 - O maior efeito indireto (excluindo o setor de origem) surge em **{sector_label(i_spill['sector'])}**, com **Δx = {i_spill['delta_x']:,.1f} milhões USD**.
 - No agregado dos setores produzidos, o efeito total é **{i_total_prod:,.1f} milhões USD**, dos quais **{i_indirect_prod:,.1f} milhões USD** resultam de propagação indireta na rede.
-- Neste cenário, observam-se **{i_pos}** setores com impacto positivo e **{i_neg}** com impacto negativo, reforçando que os efeitos de um choque de procura se distribuem de forma desigual ao longo da cadeia produtiva.
+- Entre os **{i_n_others} setores restantes (excluindo o setor de origem)**, observam-se **{i_pos_others}** impactos positivos, **{i_neg_others}** negativos e **{i_zero_others}** nulos. As magnitudes distribuem-se de forma desigual ao longo da cadeia produtiva.
+"""
+print(txt)
+```
+
+## Add-ons macroeconómicos
+
+Nesta secção complementamos os resultados-base com leituras mais próximas da linguagem macroeconómica usada em aulas introdutórias.
+
+A ideia é separar três perguntas diferentes:
+
+1. quanto output bruto total é ativado por um choque de procura final;
+2. quanto desse efeito se traduz em valor acrescentado doméstico;
+3. quais setores funcionam como “nós” centrais de propagação na rede.
+
+### Multiplicador de valor acrescentado (VA) vs. multiplicador de output
+
+No modelo de Leontief, o primeiro passo é sempre obter o efeito total em produção:
+
+$$
+\Delta x = (I-A)^{-1}\Delta y.
+$$
+
+Este $\Delta x$ mede **produção bruta** (gross output). Em contabilidade nacional, produção bruta não é o mesmo que contribuição para rendimento, porque inclui consumo intermédio entre setores.
+
+Para aproximar a componente de rendimento doméstico, usamos os coeficientes de VA por unidade de output:
+
+$$
+\Delta VA \approx \sum_{i \in S} v_i \Delta x_i,
+\qquad
+v_i = \frac{VA_i}{x_i},
+$$
+
+e definimos dois multiplicadores para o choque no setor $j$:
+
+$$
+m_{X,j} = \frac{\sum_{i \in S}\Delta x_i}{\Delta y_j},
+\qquad
+m_{VA,j} = \frac{\sum_{i \in S} v_i\Delta x_i}{\Delta y_j}.
+$$
+
+Leitura pedagógica:
+
+- $m_X$ responde “quanto output total a economia produz por 1 unidade de choque final”;
+- $m_{VA}$ responde “quanto valor acrescentado doméstico é gerado por 1 unidade de choque final”.
+
+```{python}
+#| label: tbl-va-multipliers
+#| tbl-cap: "Comparação entre multiplicadores de output e de valor acrescentado (VA)."
+va_mult_tbl = scenario_summary.copy()
+va_mult_tbl["Setor do choque"] = va_mult_tbl["setor_codigo"].map(lambda c: f"{sector_label(c)} ({c})")
+va_mult_tbl = va_mult_tbl[
+    [
+        "Setor do choque",
+        "choque_pct",
+        "delta_y",
+        "delta_x_total",
+        "delta_va",
+        "output_multiplier",
+        "va_multiplier",
+    ]
+].rename(
+    columns={
+        "choque_pct": "Choque (%)",
+        "delta_y": "Δy (10^6USD)",
+        "delta_x_total": "ΣΔx (10^6USD)",
+        "delta_va": "ΔVA (10^6USD)",
+        "output_multiplier": "Multiplicador de output",
+        "va_multiplier": "Multiplicador de VA",
+    }
+)
+
+(
+    va_mult_tbl.style.hide(axis="index")
+    .format(
+        {
+            "Choque (%)": "{:.2f}",
+            "Δy (10^6USD)": "{:,.2f}",
+            "ΣΔx (10^6USD)": "{:,.2f}",
+            "ΔVA (10^6USD)": "{:,.2f}",
+            "Multiplicador de output": "{:.4f}",
+            "Multiplicador de VA": "{:.4f}",
+        }
+    )
+    .set_properties(subset=["Setor do choque"], **{"text-align": "left"})
+    .set_properties(
+        subset=[
+            "Choque (%)",
+            "Δy (10^6USD)",
+            "ΣΔx (10^6USD)",
+            "ΔVA (10^6USD)",
+            "Multiplicador de output",
+            "Multiplicador de VA",
+        ],
+        **{"text-align": "right"},
+    )
+    .set_table_styles(
+        [
+            {"selector": "th.col_heading.col0", "props": [("text-align", "left")]},
+            {
+                "selector": "th.col_heading.col1, th.col_heading.col2, th.col_heading.col3, th.col_heading.col4, th.col_heading.col5, th.col_heading.col6",
+                "props": [("text-align", "right")],
+            },
+        ],
+        overwrite=False,
+    )
+)
+```
+
+```{python}
+#| label: txt-va-multiplier-interpretation
+#| echo: false
+#| output: asis
+h51_row = scenario_lookup.loc["H51"]
+i_row = scenario_lookup.loc["I"]
+h51_gap = float(h51_row["output_multiplier"] - h51_row["va_multiplier"])
+i_gap = float(i_row["output_multiplier"] - i_row["va_multiplier"])
+
+txt = f"""
+Leitura económica da tabela acima:
+
+- Em **{sector_label('H51')}**, $m_X = {h51_row['output_multiplier']:.3f}$ e $m_{{VA}} = {h51_row['va_multiplier']:.3f}$; a diferença é **{h51_gap:.3f}**.
+- Em **{sector_label('I')}**, $m_X = {i_row['output_multiplier']:.3f}$ e $m_{{VA}} = {i_row['va_multiplier']:.3f}$; a diferença é **{i_gap:.3f}**.
+- O hiato $m_X - m_{{VA}}$ capta a parcela do efeito total que permanece em fluxos intermédios entre setores (não em VA).
+- Em aula, esta distinção ajuda a evitar a leitura incorreta de multiplicador de produção bruta como “multiplicador de PIB”.
+"""
+print(txt)
+```
+
+### Decomposição: VA doméstico, cunha fiscal (`TXS`) e fuga importada (`IMP_OTHER`)
+
+Nesta decomposição, os fluxos monetários ($\Delta VA$, $\Delta x_{TXS}$ e $\Delta x_{IMP\_OTHER}$) estão em **milhões de USD**.  
+As razões por unidade de choque ($\Delta x_{TXS}/\Delta y$ e $\Delta x_{IMP\_OTHER}/\Delta y$) são adimensionais e ajudam a comparar setores com escalas diferentes.
+
+```{python}
+#| label: tbl-decomposition-wedges
+#| tbl-cap: "Decomposição dos efeitos dos choques: VA, TXS e IMP_OTHER."
+plus_shocks = sandbox_summary[sandbox_summary["shock_pct"] == 1.0].copy()
+plus_shocks_nonbase = plus_shocks[~plus_shocks["shock_sector"].isin(["H51", "I"])].copy()
+if plus_shocks_nonbase.empty:
+    plus_shocks_nonbase = plus_shocks.copy()
+
+txs_pick = plus_shocks_nonbase.sort_values("tax_wedge_ratio", ascending=False).iloc[0]
+imp_sorted = plus_shocks_nonbase.sort_values("import_leakage_ratio", ascending=False)
+imp_candidates = imp_sorted[imp_sorted["shock_sector"] != txs_pick["shock_sector"]]
+imp_pick = imp_candidates.iloc[0] if not imp_candidates.empty else imp_sorted.iloc[0]
+
+selected_specs = [
+    {"code": "H51", "pct": -1.0, "criterion": "Cenário base"},
+    {"code": "I", "pct": 1.0, "criterion": "Cenário base"},
+    {"code": str(txs_pick["shock_sector"]), "pct": 1.0, "criterion": "Alto Δx_TXS / Δy (+1%)"},
+]
+
+if imp_pick["shock_sector"] != txs_pick["shock_sector"]:
+    selected_specs.append(
+        {"code": str(imp_pick["shock_sector"]), "pct": 1.0, "criterion": "Alto Δx_IMP_OTHER / Δy (+1%)"}
+    )
+else:
+    selected_specs[2]["criterion"] = "Alto Δx_TXS / Δy e Δx_IMP_OTHER / Δy (+1%)"
+
+decomp_rows = []
+for spec in selected_specs:
+    code = spec["code"]
+    pct = spec["pct"]
+
+    from_main = scenario_summary[
+        (scenario_summary["setor_codigo"] == code) & (np.isclose(scenario_summary["choque_pct"], pct))
+    ]
+
+    if not from_main.empty:
+        base = from_main.iloc[0]
+        row = {
+            "setor_codigo": code,
+            "choque_pct": float(base["choque_pct"]),
+            "delta_va": float(base["delta_va"]),
+            "delta_txs": float(base["delta_txs"]),
+            "delta_imp_other": float(base["delta_imp_other"]),
+            "va_share_in_delta_x": float(base["va_share_in_delta_x"]),
+            "txs_per_delta_y": float(base["txs_per_delta_y"]),
+            "imp_other_per_delta_y": float(base["imp_other_per_delta_y"]),
+        }
+    else:
+        from_sandbox = sandbox_summary[
+            (sandbox_summary["shock_sector"] == code) & (np.isclose(sandbox_summary["shock_pct"], pct))
+        ]
+        if from_sandbox.empty:
+            continue
+        base = from_sandbox.iloc[0]
+        delta_x_total = float(base["delta_x_total"])
+        row = {
+            "setor_codigo": code,
+            "choque_pct": float(base["shock_pct"]),
+            "delta_va": float(base["delta_va"]),
+            "delta_txs": float(base["delta_txs"]),
+            "delta_imp_other": float(base["delta_imp_other"]),
+            "va_share_in_delta_x": np.nan if np.isclose(delta_x_total, 0.0) else float(base["delta_va"]) / delta_x_total,
+            "txs_per_delta_y": float(base["tax_wedge_ratio"]),
+            "imp_other_per_delta_y": float(base["import_leakage_ratio"]),
+        }
+
+    row["criterion"] = spec["criterion"]
+    decomp_rows.append(row)
+
+decomp_calc = pd.DataFrame(decomp_rows)
+decomp_tbl = decomp_calc.copy()
+decomp_tbl["Setor do choque"] = decomp_tbl["setor_codigo"].map(lambda c: f"{sector_label(c)} ({c})")
+decomp_tbl["Critério"] = decomp_tbl["criterion"]
+decomp_tbl["Choque (%)"] = decomp_tbl["choque_pct"]
+decomp_tbl = decomp_tbl[
+    [
+        "Setor do choque",
+        "Critério",
+        "Choque (%)",
+        "delta_va",
+        "delta_txs",
+        "delta_imp_other",
+        "va_share_in_delta_x",
+        "txs_per_delta_y",
+        "imp_other_per_delta_y",
+    ]
+].rename(
+    columns={
+        "delta_va": "ΔVA (10^6USD)",
+        "delta_txs": "Δx_TXS (10^6USD)",
+        "delta_imp_other": "Δx_IMP_OTHER (10^6USD)",
+        "va_share_in_delta_x": "ΔVA / ΣΔx",
+        "txs_per_delta_y": "Δx_TXS / Δy",
+        "imp_other_per_delta_y": "Δx_IMP_OTHER / Δy",
+    }
+)
+
+(
+    decomp_tbl.style.hide(axis="index")
+    .format(
+        {
+            "Choque (%)": "{:.2f}",
+            "ΔVA (10^6USD)": "{:,.2f}",
+            "Δx_TXS (10^6USD)": "{:,.2f}",
+            "Δx_IMP_OTHER (10^6USD)": "{:,.2f}",
+            "ΔVA / ΣΔx": "{:.4f}",
+            "Δx_TXS / Δy": "{:.4f}",
+            "Δx_IMP_OTHER / Δy": "{:.4f}",
+        }
+    )
+    .set_properties(subset=["Setor do choque", "Critério"], **{"text-align": "left"})
+    .set_properties(
+        subset=[
+            "Choque (%)",
+            "ΔVA (10^6USD)",
+            "Δx_TXS (10^6USD)",
+            "Δx_IMP_OTHER (10^6USD)",
+            "ΔVA / ΣΔx",
+            "Δx_TXS / Δy",
+            "Δx_IMP_OTHER / Δy",
+        ],
+        **{"text-align": "right"},
+    )
+    .set_table_styles(
+        [
+            {"selector": "th.col_heading.col0, th.col_heading.col1", "props": [("text-align", "left")]},
+            {
+                "selector": "th.col_heading.col2, th.col_heading.col3, th.col_heading.col4, th.col_heading.col5, th.col_heading.col6, th.col_heading.col7, th.col_heading.col8",
+                "props": [("text-align", "right")],
+            },
+        ],
+        overwrite=False,
+    )
+)
+```
+
+```{python}
+#| label: txt-decomposition-interpretation
+#| echo: false
+#| output: asis
+h51_row = decomp_calc.loc[decomp_calc["setor_codigo"] == "H51"].iloc[0]
+i_row = decomp_calc.loc[decomp_calc["setor_codigo"] == "I"].iloc[0]
+txs_focus = decomp_calc[decomp_calc["criterion"].str.contains("TXS", regex=False)].iloc[0]
+imp_focus_candidates = decomp_calc[decomp_calc["criterion"].str.contains("IMP_OTHER", regex=False)]
+imp_focus = imp_focus_candidates.iloc[0] if not imp_focus_candidates.empty else txs_focus
+
+txt = f"""
+Leitura económica da tabela acima:
+
+- As duas primeiras linhas mantêm os cenários-base (choques em **{sector_label('H51')}** e **{sector_label('I')}**), para facilitar comparação com as secções anteriores.
+- A linha com critério de alta razão **Δx_TXS/Δy** destaca **{sector_label(txs_focus['setor_codigo'])}**, com valor **{txs_focus['txs_per_delta_y']:.3f}** para um choque de +1%.
+- A linha com critério de alta razão **Δx_IMP_OTHER/Δy** destaca **{sector_label(imp_focus['setor_codigo'])}**, com valor **{imp_focus['imp_other_per_delta_y']:.3f}** para um choque de +1%.
+- Em termos económicos: **Δx_TXS/Δy** alto indica maior transmissão para a cunha fiscal sobre produtos; **Δx_IMP_OTHER/Δy** alto indica maior sensibilidade a conteúdo importado “extra-setorial”.
+- Nos cenários-base, **Δx_IMP_OTHER/Δy = {h51_row['imp_other_per_delta_y']:.3f}** em {sector_label('H51')} e **{i_row['imp_other_per_delta_y']:.3f}** em {sector_label('I')}.
+"""
+print(txt)
+```
+
+### Setores-chave: encadeamentos backward e forward
+
+Definimos:
+
+$$
+\text{Backward}_j = \sum_i l_{ij},
+\qquad
+\text{Forward}_i = \sum_j l_{ij},
+$$
+
+onde $l_{ij}$ são os elementos da matriz inversa de Leontief sobre setores produzidos.
+
+Interpretação prática:
+
+- **Backward linkage** de $j$: 
+  $$
+  \text{Backward}_j = \sum_i l_{ij} = \sum_i \frac{\partial x_i}{\partial y_j}.
+  $$
+  É a variação do **output total da economia** $\sum_i \Delta x_i$ quando aplicamos um choque unitário em procura final no setor $j$ (isto é, $\Delta y_j=1$ e $\Delta y_{k\neq j}=0$).
+- **Forward linkage** de $i$:
+  $$
+  \text{Forward}_i = \sum_j l_{ij} = \sum_j \frac{\partial x_i}{\partial y_j}.
+  $$
+  É a variação do **output do setor $i$** quando todas as componentes da procura final recebem choques unitários e somamos esses efeitos (equivalentemente, quando $\Delta y=\mathbf{1}$, então $\Delta x_i=\text{Forward}_i$).
+
+Em linguagem de política:
+
+- setores com backward alto tendem a ser candidatos a maior “efeito multiplicador de procura”;
+- setores com forward alto tendem a ser pontos críticos para gestão de choques de custos/oferta.
+
+```{python}
+#| label: tbl-backward-top10
+#| tbl-cap: "Top 10 setores por backward linkage (soma por coluna de L)."
+(
+    backward_top10.style.hide(axis="index")
+    .format({"backward_linkage": "{:.4f}"})
+    .set_properties(subset=["Setor"], **{"text-align": "left"})
+    .set_properties(subset=["backward_linkage"], **{"text-align": "right"})
+    .set_table_styles(
+        [
+            {"selector": "th.col_heading.col0", "props": [("text-align", "left")]},
+            {"selector": "th.col_heading.col1", "props": [("text-align", "right")]},
+        ],
+        overwrite=False,
+    )
+)
+```
+
+```{python}
+#| label: tbl-forward-top10
+#| tbl-cap: "Top 10 setores por forward linkage (soma por linha de L)."
+(
+    forward_top10.style.hide(axis="index")
+    .format({"forward_linkage": "{:.4f}"})
+    .set_properties(subset=["Setor"], **{"text-align": "left"})
+    .set_properties(subset=["forward_linkage"], **{"text-align": "right"})
+    .set_table_styles(
+        [
+            {"selector": "th.col_heading.col0", "props": [("text-align", "left")]},
+            {"selector": "th.col_heading.col1", "props": [("text-align", "right")]},
+        ],
+        overwrite=False,
+    )
+)
+```
+
+```{python}
+#| label: txt-linkages-interpretation
+#| echo: false
+#| output: asis
+top_back = backward_top10.iloc[0]
+second_back = backward_top10.iloc[1]
+top_forw = forward_top10.iloc[0]
+second_forw = forward_top10.iloc[1]
+
+txt = f"""
+Leitura económica das tabelas acima:
+
+- O maior **backward linkage** é de **{top_back['Setor']}** (**{top_back['backward_linkage']:.3f}**), seguido de **{second_back['Setor']}** (**{second_back['backward_linkage']:.3f}**).
+- O maior **forward linkage** é de **{top_forw['Setor']}** (**{top_forw['forward_linkage']:.3f}**), seguido de **{second_forw['Setor']}** (**{second_forw['forward_linkage']:.3f}**).
+- Para leitura didática: o ranking backward ajuda a discutir estímulos de procura; o ranking forward ajuda a discutir vulnerabilidade a estrangulamentos na oferta.
+"""
+print(txt)
+```
+
+### Sandbox interativo (setor, tamanho e unidade do choque)
+
+Use o sandbox abaixo para simular choques de procura final com três escolhas:
+
+1. setor do choque (campo pesquisável);
+2. tamanho do choque;
+3. unidade do choque (`% de y` do setor ou valor absoluto em `Milhões USD`).
+
+Depois de selecionar os inputs, o painel devolve os impactos no output setorial (top 15) e um resumo macro dos efeitos totais.
+
+```{python}
+#| label: fig-sandbox-dropdown
+#| echo: false
+#| output: asis
+sandbox_payload = {
+    "sectors": [
+        {
+            "code": c,
+            "label": sector_label(c),
+            "display": f"{sector_label(c)} ({c})",
+            "y": float(y_ext.loc[c]),
+            "x": float(x_ext.loc[c]),
+        }
+        for c in S
+    ],
+    "sector_order": list(S),
+    "sector_display_order": [f"{sector_label(c)} ({c})" for c in S],
+    "responses": {c: [float(v) for v in L_ext.loc[S, c].values] for c in S},
+    "v_share": [float(v_share.loc[c]) for c in S],
+    "l_txs": {c: float(L_ext.loc["TXS", c]) for c in S},
+    "l_imp_other": {c: float(L_ext.loc["IMP_OTHER", c]) for c in S},
+}
+sandbox_json = json.dumps(sandbox_payload, ensure_ascii=False)
+
+sandbox_html = """
+<div id="io-sandbox-app"></div>
+<script>
+(function () {
+  const payload = """ + sandbox_json + """;
+  const app = document.getElementById("io-sandbox-app");
+  if (!app) return;
+
+  app.innerHTML = `
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:0.7rem;align-items:end;margin:0.5rem 0 0.8rem 0;">
+      <div>
+        <label for="io-sector-input"><strong>Setor do choque</strong></label>
+        <input id="io-sector-input" list="io-sector-list" placeholder="Ex.: Transporte aéreo (H51)" style="width:100%;padding:0.4rem;" />
+        <datalist id="io-sector-list"></datalist>
+      </div>
+      <div>
+        <label for="io-shock-size"><strong>Tamanho do choque</strong></label>
+        <input id="io-shock-size" type="number" step="0.1" value="1" style="width:100%;padding:0.4rem;" />
+      </div>
+      <div>
+        <label for="io-shock-unit"><strong>Unidade</strong></label>
+        <select id="io-shock-unit" style="width:100%;padding:0.4rem;">
+          <option value="pct">% de y (procura final do setor)</option>
+          <option value="abs">Milhões USD (Δy absoluto)</option>
+        </select>
+      </div>
+      <div>
+        <button id="io-run-btn" style="padding:0.45rem 0.9rem;">Atualizar</button>
+      </div>
+    </div>
+    <div id="io-sandbox-alert" style="display:none;color:#b00020;font-size:0.95rem;margin-bottom:0.5rem;"></div>
+    <div id="io-sandbox-summary" style="margin:0.4rem 0 0.9rem 0;"></div>
+    <div id="io-sandbox-chart" style="min-height:520px;"></div>
+  `;
+
+  if (typeof Plotly === "undefined") {
+    const alertBox = document.getElementById("io-sandbox-alert");
+    alertBox.style.display = "block";
+    alertBox.textContent = "Plotly não está disponível nesta página.";
+    return;
+  }
+
+  const sectors = payload.sectors;
+  const byCode = Object.fromEntries(sectors.map(s => [s.code, s]));
+  const byDisplay = Object.fromEntries(sectors.map(s => [s.display.toLowerCase(), s.code]));
+
+  const sectorInput = document.getElementById("io-sector-input");
+  const sectorList = document.getElementById("io-sector-list");
+  const shockSizeInput = document.getElementById("io-shock-size");
+  const shockUnitSelect = document.getElementById("io-shock-unit");
+  const runBtn = document.getElementById("io-run-btn");
+  const alertBox = document.getElementById("io-sandbox-alert");
+  const summaryBox = document.getElementById("io-sandbox-summary");
+  const chartDiv = document.getElementById("io-sandbox-chart");
+
+  sectors.forEach(s => {
+    const option = document.createElement("option");
+    option.value = s.display;
+    sectorList.appendChild(option);
+  });
+
+  const defaultCode = byCode["H51"] ? "H51" : sectors[0].code;
+  sectorInput.value = byCode[defaultCode].display;
+
+  const fmt2 = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt3 = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
+  function resolveSector(rawValue) {
+    const raw = (rawValue || "").trim();
+    if (!raw) return null;
+    if (byCode[raw]) return raw;
+    const exact = byDisplay[raw.toLowerCase()];
+    if (exact) return exact;
+    const match = raw.match(/\\(([A-Za-z0-9_]+)\\)\\s*$/);
+    if (match && byCode[match[1]]) return match[1];
+    const approx = sectors.find(s => s.label.toLowerCase() === raw.toLowerCase());
+    return approx ? approx.code : null;
+  }
+
+  function renderSummary(code, unit, shockSize, deltaY, deltaX, deltaVA, deltaTXS, deltaImpOther) {
+    const totalDX = deltaX.reduce((acc, v) => acc + v, 0);
+    const outputMult = deltaY === 0 ? NaN : totalDX / deltaY;
+    const vaMult = deltaY === 0 ? NaN : deltaVA / deltaY;
+    const impLeak = deltaY === 0 ? NaN : deltaImpOther / deltaY;
+    const taxWedge = deltaY === 0 ? NaN : deltaTXS / deltaY;
+    const unitTxt = unit === "pct" ? `${fmt2.format(shockSize)}% de y` : `${fmt2.format(shockSize)} (Milhões USD)`;
+
+    summaryBox.innerHTML = `
+      <table class="table table-sm table-striped" style="margin-bottom:0;">
+        <tbody>
+          <tr><th style="text-align:left;">Setor do choque</th><td style="text-align:right;">${byCode[code].display}</td></tr>
+          <tr><th style="text-align:left;">Input do choque</th><td style="text-align:right;">${unitTxt}</td></tr>
+          <tr><th style="text-align:left;">Δy aplicado (Milhões USD)</th><td style="text-align:right;">${fmt2.format(deltaY)}</td></tr>
+          <tr><th style="text-align:left;">ΣΔx (Milhões USD)</th><td style="text-align:right;">${fmt2.format(totalDX)}</td></tr>
+          <tr><th style="text-align:left;">ΔVA (Milhões USD)</th><td style="text-align:right;">${fmt2.format(deltaVA)}</td></tr>
+          <tr><th style="text-align:left;">Δx_TXS (Milhões USD)</th><td style="text-align:right;">${fmt2.format(deltaTXS)}</td></tr>
+          <tr><th style="text-align:left;">Δx_IMP_OTHER (Milhões USD)</th><td style="text-align:right;">${fmt2.format(deltaImpOther)}</td></tr>
+          <tr><th style="text-align:left;">Multiplicador de output</th><td style="text-align:right;">${Number.isFinite(outputMult) ? fmt3.format(outputMult) : "n.d."}</td></tr>
+          <tr><th style="text-align:left;">Multiplicador de VA</th><td style="text-align:right;">${Number.isFinite(vaMult) ? fmt3.format(vaMult) : "n.d."}</td></tr>
+          <tr><th style="text-align:left;">Δx_TXS / Δy</th><td style="text-align:right;">${Number.isFinite(taxWedge) ? fmt3.format(taxWedge) : "n.d."}</td></tr>
+          <tr><th style="text-align:left;">Δx_IMP_OTHER / Δy</th><td style="text-align:right;">${Number.isFinite(impLeak) ? fmt3.format(impLeak) : "n.d."}</td></tr>
+        </tbody>
+      </table>
+    `;
+  }
+
+  function updateSandbox() {
+    alertBox.style.display = "none";
+    alertBox.textContent = "";
+
+    const code = resolveSector(sectorInput.value);
+    const shockSize = Number(shockSizeInput.value);
+    const unit = shockUnitSelect.value;
+
+    if (!code) {
+      alertBox.style.display = "block";
+      alertBox.textContent = "Setor inválido. Escolha um setor da lista pesquisável.";
+      return;
+    }
+    if (!Number.isFinite(shockSize)) {
+      alertBox.style.display = "block";
+      alertBox.textContent = "Tamanho do choque inválido. Introduza um valor numérico.";
+      return;
+    }
+
+    const sectorInfo = byCode[code];
+    const deltaY = unit === "pct" ? (shockSize / 100.0) * sectorInfo.y : shockSize;
+
+    const responseCol = payload.responses[code];
+    const deltaX = responseCol.map(v => v * deltaY);
+    const deltaVA = deltaX.reduce((acc, v, idx) => acc + payload.v_share[idx] * v, 0.0);
+    const deltaTXS = payload.l_txs[code] * deltaY;
+    const deltaImpOther = payload.l_imp_other[code] * deltaY;
+
+    const rows = payload.sector_order.map((secCode, idx) => ({
+      sector: secCode,
+      label: payload.sector_display_order[idx],
+      delta_x: deltaX[idx],
+      abs_delta_x: Math.abs(deltaX[idx]),
+    }));
+
+    rows.sort((a, b) => b.abs_delta_x - a.abs_delta_x);
+    const top15 = rows.slice(0, 15).sort((a, b) => a.delta_x - b.delta_x);
+
+    const shockTxt = unit === "pct"
+      ? `${fmt2.format(shockSize)}% de y`
+      : `${fmt2.format(shockSize)} (Milhões USD) em Δy`;
+
+    const trace = {
+      type: "bar",
+      orientation: "h",
+      x: top15.map(r => r.delta_x),
+      y: top15.map(r => r.label),
+      marker: { color: "#2f6f87" },
+      hovertemplate: "%{y}<br>Δx=%{x:.2f} (Milhões USD)<extra></extra>",
+    };
+
+    const layout = {
+      template: "plotly_white",
+      title: `Sandbox IO: choque em ${sectorInfo.display} | ${shockTxt}`,
+      title_x: 0.5,
+      margin: { t: 90, r: 20, b: 60, l: 220 },
+      xaxis: { title: "Δx (Milhões USD)" },
+      yaxis: { title: "Setor" },
+    };
+
+    Plotly.react(chartDiv, [trace], layout, { responsive: true, displayModeBar: false });
+    renderSummary(code, unit, shockSize, deltaY, deltaX, deltaVA, deltaTXS, deltaImpOther);
+  }
+
+  runBtn.addEventListener("click", updateSandbox);
+  sectorInput.addEventListener("change", updateSandbox);
+  shockSizeInput.addEventListener("change", updateSandbox);
+  shockUnitSelect.addEventListener("change", updateSandbox);
+  shockSizeInput.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") updateSandbox();
+  });
+
+  updateSandbox();
+})();
+</script>
+"""
+
+print(sandbox_html)
+```
+
+```{python}
+#| label: txt-sandbox-interpretation
+#| echo: false
+#| output: asis
+txt = f"""
+Leitura económica do sandbox:
+
+- O cálculo é sempre **$\Delta x = (I-A)^{{-1}}\Delta y$**: os resultados incluem efeito inicial e propagação em rede.
+- Se escolher a unidade `% de y`, o sandbox converte automaticamente o valor em choque absoluto de procura final para o setor selecionado.
+- Se escolher `Milhões USD`, o choque entra diretamente como $\Delta y$ absoluto.
+- O quadro-resumo mostra, para o mesmo choque, produção total, valor acrescentado e decomposição para `TXS` e `IMP_OTHER`, o que ajuda a comparar setores com maior transmissão fiscal/importada.
+"""
+print(txt)
+```
+
+### Mini-caso de política: aumento do custo importado (`IMP_OTHER`)
+
+Consideramos um choque de preços exógenos nas cunhas:
+
+$$
+\Delta p_W = (\Delta p_{\text{TXS}}, \Delta p_{\text{IMP\_OTHER}})^\top = (0,\ 0.10)^\top.
+$$
+
+Com coeficientes fixos, o efeito em custos unitários dos setores produzidos é:
+
+$$
+\Delta p_S = (I - A_{SS}^{\top})^{-1}A_{WS}^{\top}\Delta p_W.
+$$
+
+```{python}
+#| label: tbl-import-cost-mini-case
+#| tbl-cap: "Mini-caso: principais setores afetados por um aumento de 10% em IMP_OTHER."
+mini_case_rank = import_cost_case.copy()
+mini_case_rank["Setor"] = mini_case_rank["sector"].map(lambda c: f"{sector_label(c)} ({c})")
+mini_case_rank = mini_case_rank.sort_values("delta_p_hat_pct_base", ascending=False).head(15)
+mini_case_tbl = mini_case_rank[["Setor", "delta_p_hat_pct_base"]].rename(
+    columns={"delta_p_hat_pct_base": "Δp_hat / p_hat_base (%)"}
+)
+
+(
+    mini_case_tbl.style.hide(axis="index")
+    .format({"Δp_hat / p_hat_base (%)": "{:.2f}"})
+    .set_properties(subset=["Setor"], **{"text-align": "left"})
+    .set_properties(subset=["Δp_hat / p_hat_base (%)"], **{"text-align": "right"})
+    .set_table_styles(
+        [
+            {"selector": "th.col_heading.col0", "props": [("text-align", "left")]},
+            {"selector": "th.col_heading.col1", "props": [("text-align", "right")]},
+        ],
+        overwrite=False,
+    )
+)
+```
+
+```{python}
+#| label: txt-import-cost-interpretation
+#| echo: false
+#| output: asis
+top_imp_case = mini_case_rank.iloc[0]
+
+txt = f"""
+Leitura económica do mini-caso:
+
+- Um aumento exógeno do custo de `IMP_OTHER` propaga-se para os custos setoriais via matriz transposta de coeficientes técnicos.
+- A tabela ordena os setores do maior para o menor impacto relativo, medido por **Δp_hat / p_hat_base (%)**.
+- O setor mais sensível neste exercício é **{top_imp_case['Setor']}**, com variação relativa de **{top_imp_case['delta_p_hat_pct_base']:.2f}%** face ao seu `p_hat` de base.
 """
 print(txt)
 ```
@@ -1083,7 +1923,7 @@ print(txt)
 
 ## Conclusão
 
-A matriz técnica e a inversa de Leontief fornecem uma forma transparente de ligar choques de procura final a efeitos totais na produção setorial. Para ensino introdutório, os exercícios em transporte aéreo e alojamento/restauração ajudam a visualizar encadeamentos produtivos e a diferença entre efeitos diretos e indiretos.
+A matriz técnica e a inversa de Leontief fornecem uma forma transparente de ligar choques de procura final a efeitos totais na produção setorial. Para ensino introdutório, os exercícios em transporte aéreo e alojamento/restauração ajudam a visualizar encadeamentos produtivos e a diferença entre efeito inicial e propagação indireta.
 
 ```{python}
 #| label: txt-conclusion-numbers
