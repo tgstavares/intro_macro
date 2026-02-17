@@ -1,2 +1,2 @@
 year,source_file,source_mode,n_sector_cols,n_produced,dropped_sectors,max_abs_balance_error,max_rel_balance_error,max_abs_xhat_error,max_rel_xhat_error,inverse_ok,price_solve_ok,spectral_radius_A_prod
-2022,PRT2022ttl.csv,download,50,48,B05|B06,1.970999999994092,6.168054802350432e-05,1.999772930277686,6.258096918440715e-05,True,True,0.5691527602191271
+2022,PRT2022ttl.csv,download,50,48,,1.970999999994092,6.168054802350432e-05,1.999772930277686,6.258096918440715e-05,True,True,0.5691527602191271

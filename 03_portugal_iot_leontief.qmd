@@ -29,8 +29,10 @@ Uma nota importante sobre as linhas especiais da base OECD `ttl`:
 
 - `TXS_INT_FNL` representa **impostos líquidos de subsídios sobre produtos** alocados aos usos intermédios e finais (conceito `TLS` no ReadMe da ICIO);
 - `IMP_OTHER` representa **outras importações** (um ajustamento de importações fora das linhas setoriais `TTL_*`).
+- `B05` corresponde a **extração de carvão e lenhite**;
+- `B06` corresponde a **extração de petróleo bruto e gás natural**.
 
-No módulo, estas duas linhas são tratadas como “setores fictícios” que vendem a todos os setores, mas não compram inputs intermédios, para manter a leitura económica do sistema de Leontief com dados raw.
+No ficheiro de Portugal usado no módulo, `B05` e `B06` não entram como setores produzidos domésticos (output não positivo), pelo que são tratados, na prática, como conteúdo importado. Por isso, construímos a cunha importada alargada `IMP_OTHER_plus = IMP_OTHER + TTL_B05 + TTL_B06` e tratamos `TXS` e `IMP_OTHER_plus` como “setores fictícios” que vendem a todos os setores, mas não compram inputs intermédios, para manter a leitura económica do sistema de Leontief com dados raw.
 
 Referência principal da fonte e documentação: [OECD Inter-Country Input-Output (ICIO)](https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html).
 
@@ -41,12 +43,14 @@ Os objetivos são:
   x = Ax + y,
   $$
   onde as colunas de $A$ são compradores e as linhas são vendedores;
-- incluir `TXS_INT_FNL` e `IMP_OTHER` como setores fictícios (`TXS` e `IMP_OTHER`) que vendem a todos, mas não compram a ninguém;
+- incluir `TXS_INT_FNL` e `IMP_OTHER_plus` como setores fictícios (`TXS` e `IMP_OTHER_plus`) que vendem a todos, mas não compram a ninguém;
 - interpretar a matriz técnica $A$ e a inversa de Leontief $(I-A)^{-1}$;
 - ligar os sistemas de quantidades e preços;
 - estudar dois exercícios de política de procura final:
   - choque de `-1%` em `H51` (Air transport),
   - choque de `+1%` em `I` (Accommodation and food service activities; aqui `I` é código setorial, não investimento).
+
+Em termos de leitura, o módulo segue uma sequência simples: primeiro construímos e validamos o sistema contabilístico, depois interpretamos $A$ e $(I-A)^{-1}$, em seguida ligamos quantidades e preços e, por fim, aplicamos exercícios e add-ons para leitura macroeconómica.
 
 ```{python}
 #| label: setup
@@ -77,13 +81,19 @@ FD_COLS = [
     "IMPO",
 ]
 
-REQUIRED_ROWS = ["OUTPUT", "TXS_INT_FNL", "IMP_OTHER", "TTL_H51", "TTL_I"]
+WEDGE_TAX = "TXS"
+WEDGE_IMPORT = "IMP_OTHER_plus"
+IMPORT_PLUS_ROWS = ["IMP_OTHER", "TTL_B05", "TTL_B06"]
+
+REQUIRED_ROWS = ["OUTPUT", "TXS_INT_FNL", "IMP_OTHER", "TTL_B05", "TTL_B06", "TTL_H51", "TTL_I"]
 TARGET_SHOCKS = {"H51": -0.01, "I": 0.01}
 
 SECTOR_LABELS_PT = {
     "A01": "Agricultura e caça",
     "A02": "Silvicultura",
     "A03": "Pesca e aquicultura",
+    "B05": "Extração de carvão e lenhite",
+    "B06": "Extração de petróleo bruto e gás natural",
     "B07": "Extração de minérios metálicos",
     "B08": "Outras indústrias extrativas",
     "B09": "Serviços de apoio à extração",
@@ -131,6 +141,7 @@ SECTOR_LABELS_PT = {
     "T": "Serviços domésticos das famílias",
     "TXS": "Impostos líquidos sobre produtos",
     "IMP_OTHER": "Outras importações",
+    "IMP_OTHER_plus": "Outras importações + energia fóssil importada (B05/B06)",
 }
 
 ARTIFACTS_DIR = Path("03_portugal_iot_leontief_artifacts")
@@ -234,33 +245,34 @@ def build_leontief_ext(table: pd.DataFrame):
     if "H51" not in S or "I" not in S:
         raise ValueError("H51 e I têm de estar presentes em S (setores produzidos com linha TTL_ correspondente).")
 
-    sellers_ext = S + ["TXS", "IMP_OTHER"]
+    sellers_ext = S + [WEDGE_TAX, WEDGE_IMPORT]
 
     Z = pd.DataFrame(0.0, index=sellers_ext, columns=S)
     for i in S:
         Z.loc[i, S] = table.loc[f"TTL_{i}", S].astype(float).values
 
-    Z.loc["TXS", S] = table.loc["TXS_INT_FNL", S].astype(float).values
-    Z.loc["IMP_OTHER", S] = table.loc["IMP_OTHER", S].astype(float).values
+    Z.loc[WEDGE_TAX, S] = table.loc["TXS_INT_FNL", S].astype(float).values
+    import_plus_intermediate = table.loc[IMPORT_PLUS_ROWS, S].astype(float).sum(axis=0)
+    Z.loc[WEDGE_IMPORT, S] = import_plus_intermediate.values
 
     x_ext = pd.Series(index=sellers_ext, dtype=float)
     x_ext.loc[S] = x_obs.loc[S].values
-    x_ext.loc["TXS"] = float(table.loc["TXS_INT_FNL", "TOTAL"])
-    x_ext.loc["IMP_OTHER"] = float(table.loc["IMP_OTHER", "TOTAL"])
+    x_ext.loc[WEDGE_TAX] = float(table.loc["TXS_INT_FNL", "TOTAL"])
+    x_ext.loc[WEDGE_IMPORT] = float(table.loc[IMPORT_PLUS_ROWS, "TOTAL"].astype(float).sum())
 
     A_ext = pd.DataFrame(0.0, index=sellers_ext, columns=sellers_ext)
     for j in S:
         A_ext.loc[sellers_ext, j] = Z.loc[sellers_ext, j] / x_ext.loc[j]
 
     # Colunas dos setores fictícios (compradores) são zero por construção.
-    A_ext.loc[:, "TXS"] = 0.0
-    A_ext.loc[:, "IMP_OTHER"] = 0.0
+    A_ext.loc[:, WEDGE_TAX] = 0.0
+    A_ext.loc[:, WEDGE_IMPORT] = 0.0
 
     y_ext = pd.Series(index=sellers_ext, dtype=float)
     for r in S:
         y_ext.loc[r] = float(table.loc[f"TTL_{r}", FD_COLS].astype(float).sum())
-    y_ext.loc["TXS"] = float(table.loc["TXS_INT_FNL", FD_COLS].astype(float).sum())
-    y_ext.loc["IMP_OTHER"] = float(table.loc["IMP_OTHER", FD_COLS].astype(float).sum())
+    y_ext.loc[WEDGE_TAX] = float(table.loc["TXS_INT_FNL", FD_COLS].astype(float).sum())
+    y_ext.loc[WEDGE_IMPORT] = float(table.loc[IMPORT_PLUS_ROWS, FD_COLS].astype(float).to_numpy().sum())
 
     I_ext = np.eye(len(sellers_ext))
     M_ext = I_ext - A_ext.values
@@ -297,7 +309,7 @@ def build_leontief_ext(table: pd.DataFrame):
         raise ValueError("A soma de procura final sobre setores produzidos é zero; não é possível calcular b_i.")
     b_shares = (y_ext.loc[S] / b_denom).rename("b_share")
 
-    dropped_sectors = dropped_non_produced + dropped_missing_ttl
+    dropped_sectors = [s for s in dropped_non_produced + dropped_missing_ttl if s not in ["B05", "B06"]]
 
     return {
         "sector_cols": sector_cols,
@@ -325,7 +337,7 @@ def build_leontief_ext(table: pd.DataFrame):
 
 def solve_price_system(table: pd.DataFrame, A_ext: pd.DataFrame, S: list[str]):
     A_ss = A_ext.loc[S, S]
-    A_ws = A_ext.loc[["TXS", "IMP_OTHER"], S]
+    A_ws = A_ext.loc[[WEDGE_TAX, WEDGE_IMPORT], S]
 
     v_s = (table.loc["VALU", S].astype(float) / table.loc["OUTPUT", S].astype(float)).rename("v_share")
     p_w = np.array([1.0, 1.0])
@@ -341,13 +353,13 @@ def solve_price_system(table: pd.DataFrame, A_ext: pd.DataFrame, S: list[str]):
         p_s = np.linalg.pinv(M) @ rhs
 
     p_s = pd.Series(p_s, index=S, name="p_hat")
-    p_ext = pd.concat([p_s, pd.Series({"TXS": 1.0, "IMP_OTHER": 1.0}, name="p_hat")])
+    p_ext = pd.concat([p_s, pd.Series({WEDGE_TAX: 1.0, WEDGE_IMPORT: 1.0}, name="p_hat")])
 
     price_components = pd.DataFrame(
         {
             "v_share": v_s,
-            "txs_direct": A_ext.loc["TXS", S].astype(float),
-            "imp_other_direct": A_ext.loc["IMP_OTHER", S].astype(float),
+            "txs_direct": A_ext.loc[WEDGE_TAX, S].astype(float),
+            "imp_other_direct": A_ext.loc[WEDGE_IMPORT, S].astype(float),
             "p_hat": p_s,
         }
     )
@@ -471,8 +483,8 @@ for code, shock_pct, dy_vec, shock_tbl in scenario_specs:
     delta_y = float(dy_vec.loc[code])
     delta_x_total = float(dx_vec.loc[S].sum())
     delta_va = float((v_share * dx_vec.loc[S]).sum())
-    delta_txs = float(dx_vec.loc["TXS"])
-    delta_imp_other = float(dx_vec.loc["IMP_OTHER"])
+    delta_txs = float(dx_vec.loc[WEDGE_TAX])
+    delta_imp_other = float(dx_vec.loc[WEDGE_IMPORT])
 
     output_multiplier = np.nan if np.isclose(delta_y, 0.0) else delta_x_total / delta_y
     va_multiplier = np.nan if np.isclose(delta_y, 0.0) else delta_va / delta_y
@@ -545,8 +557,8 @@ for shock_sector in S:
         delta_y_tmp = float(dy_tmp.loc[shock_sector])
         delta_x_total_tmp = float(dx_tmp.loc[S].sum())
         delta_va_tmp = float((v_share * dx_tmp.loc[S]).sum())
-        delta_txs_tmp = float(dx_tmp.loc["TXS"])
-        delta_imp_other_tmp = float(dx_tmp.loc["IMP_OTHER"])
+        delta_txs_tmp = float(dx_tmp.loc[WEDGE_TAX])
+        delta_imp_other_tmp = float(dx_tmp.loc[WEDGE_IMPORT])
 
         output_mult_tmp = np.nan if np.isclose(delta_y_tmp, 0.0) else delta_x_total_tmp / delta_y_tmp
         va_mult_tmp = np.nan if np.isclose(delta_y_tmp, 0.0) else delta_va_tmp / delta_y_tmp
@@ -577,7 +589,7 @@ sandbox_summary["scenario_label"] = sandbox_summary.apply(
 )
 
 A_ss = A_ext.loc[S, S].astype(float)
-A_ws = A_ext.loc[["TXS", "IMP_OTHER"], S].astype(float)
+A_ws = A_ext.loc[[WEDGE_TAX, WEDGE_IMPORT], S].astype(float)
 M_price = np.eye(len(S)) - A_ss.values.T
 
 price_inverse_ok = True
@@ -589,8 +601,8 @@ except np.linalg.LinAlgError:
 
 price_propagator = pd.DataFrame(price_propagator_values, index=S, columns=S)
 
-delta_p_w = pd.Series({"TXS": 0.0, "IMP_OTHER": 0.10})
-rhs_import_case = A_ws.values.T @ delta_p_w.loc[["TXS", "IMP_OTHER"]].values
+delta_p_w = pd.Series({WEDGE_TAX: 0.0, WEDGE_IMPORT: 0.01})
+rhs_import_case = A_ws.values.T @ delta_p_w.loc[[WEDGE_TAX, WEDGE_IMPORT]].values
 delta_p_s = pd.Series(price_propagator.values @ rhs_import_case, index=S, name="delta_p_hat")
 
 import_cost_case = pd.DataFrame({"sector": S, "delta_p_hat": delta_p_s.values})
@@ -599,8 +611,6 @@ import_cost_case["delta_p_hat_pct_base"] = (
     100 * import_cost_case["delta_p_hat"] / import_cost_case["p_hat_base"].replace(0, np.nan)
 )
 import_cost_case["abs_delta_p_hat"] = import_cost_case["delta_p_hat"].abs()
-import_cost_case_top15 = import_cost_case.sort_values("abs_delta_p_hat", ascending=False).head(15).copy()
-import_cost_case_top15["Setor"] = import_cost_case_top15["sector"].map(lambda c: f"{sector_label(c)} ({c})")
 ```
 
 ```{python}
@@ -619,7 +629,7 @@ A construção segue, exatamente, os passos:
 
 1. setores produzidos com `OUTPUT > 0`;
 2. matriz de vendas intermédias $Z$ com linhas vendedores e colunas compradores;
-3. extensão com `TXS` e `IMP_OTHER` como vendedores fictícios;
+3. extensão com `TXS` e `IMP_OTHER_plus` como vendedores fictícios;
 4. matriz técnica estendida $A_{ext}$ com colunas fictícias de compradores iguais a zero;
 5. procura final líquida $y_{ext}$ pela soma das colunas finais (incluindo `IMPO`, negativa).
 
@@ -629,17 +639,19 @@ $$
 x_{ext} = A_{ext}x_{ext} + y_{ext}.
 $$
 
-O tratamento de `TXS` e `IMP_OTHER` é importante para manter a interpretação económica correta:
+O tratamento de `TXS` e `IMP_OTHER_plus` é importante para manter a interpretação económica correta:
 
-- `TXS` (impostos líquidos sobre produtos) e `IMP_OTHER` (outras importações) entram como **linhas vendedoras**. Isto significa que contam como custos por unidade de produção dos setores compradores.
-- Ao mesmo tempo, são definidos como setores que **não compram inputs intermédios** no sistema (`A_ext[:, "TXS"] = 0` e `A_ext[:, "IMP_OTHER"] = 0`).
+- `TXS` (impostos líquidos sobre produtos) e `IMP_OTHER_plus` (outras importações + `B05`/`B06`) entram como **linhas vendedoras**. Isto significa que contam como custos por unidade de produção dos setores compradores.
+- Ao mesmo tempo, são definidos como setores que **não compram inputs intermédios** no sistema (`A_ext[:, "TXS"] = 0` e `A_ext[:, "IMP_OTHER_plus"] = 0`).
 - Em termos práticos, funcionam como “cunhas” (wedges) contabilísticas: afetam custos e preços de produção, mas não criam rondas adicionais de procura intermédia como um setor produtivo convencional.
 
 ::: {.callout-note}
 ## Nota sobre importações no modelo
 `IMPO` entra na procura final como termo negativo (procura final líquida).  
-`IMP_OTHER` entra como setor fictício vendedor: funciona como cunha de custo importado por unidade de produção e não gera novas rondas intermédias, porque não compra inputs no sistema.
+`IMP_OTHER_plus = IMP_OTHER + TTL_B05 + TTL_B06` entra como setor fictício vendedor: funciona como cunha de custo importado por unidade de produção e não gera novas rondas intermédias, porque não compra inputs no sistema.
 :::
+
+A tabela seguinte resume a dimensão do sistema que vamos usar nas secções seguintes.
 
 ```{python}
 #| label: tbl-system-dims
@@ -670,7 +682,7 @@ tbl_dims = pd.DataFrame(
 )
 ```
 
-A Tabela 2 é um teste de coerência interna do sistema. A identidade $x = Ax + y$ deve ser satisfeita (até erro numérico de arredondamento) se a construção de $A_{ext}$, $x_{ext}$ e $y_{ext}$ estiver correta. Mostramos setores económicos (`H51` e `I`) e os dois setores fictícios (`TXS` e `IMP_OTHER`) para confirmar que a lógica é consistente em todos os blocos do modelo.
+A tabela de verificação abaixo testa a coerência interna do sistema. A identidade $x = Ax + y$ deve ser satisfeita (até erro numérico de arredondamento) se a construção de $A_{ext}$, $x_{ext}$ e $y_{ext}$ estiver correta. Mostramos setores económicos (`H51` e `I`) e os dois setores fictícios (`TXS` e `IMP_OTHER_plus`) para confirmar que a lógica é consistente em todos os blocos do modelo.
 
 ```{python}
 #| label: tbl-equation-check
@@ -686,7 +698,7 @@ check_tbl = pd.DataFrame(
 check_tbl["setor_descricao"] = check_tbl["setor"].map(sector_label)
 check_tbl["setor"] = check_tbl["setor_descricao"]
 
-focus_sectors = ["H51", "I", "TXS", "IMP_OTHER"]
+focus_sectors = ["H51", "I", WEDGE_TAX, WEDGE_IMPORT]
 focus_labels = [sector_label(s) for s in focus_sectors]
 focus_labels = [s for s in focus_labels if s in set(check_tbl["setor"])]
 
@@ -759,6 +771,27 @@ tbl_a = pd.concat(rows, ignore_index=True)
 )
 ```
 
+```{python}
+#| label: txt-a-interpretation
+#| echo: false
+#| output: asis
+h51_top = A_ext.loc[:, "H51"].astype(float).sort_values(ascending=False)
+h51_top = h51_top[h51_top > 0].head(2)
+
+i_top = A_ext.loc[:, "I"].astype(float).sort_values(ascending=False)
+i_top = i_top[i_top > 0].head(2)
+
+txt = f"""
+Leitura económica da tabela acima:
+
+- Em **{sector_label('H51')}**, os maiores coeficientes diretos são **{sector_label(h51_top.index[0])} ({h51_top.iloc[0]:.4f})** e **{sector_label(h51_top.index[1])} ({h51_top.iloc[1]:.4f})**.
+- Em **{sector_label('I')}**, os maiores coeficientes diretos são **{sector_label(i_top.index[0])} ({i_top.iloc[0]:.4f})** e **{sector_label(i_top.index[1])} ({i_top.iloc[1]:.4f})**.
+
+Isto ajuda a visualizar quais fornecedores pesam mais no custo intermédio direto de cada setor comprador.
+"""
+print(txt)
+```
+
 ## Interpretação da inversa de Leontief $(I-A)^{-1}$
 
 Com
@@ -827,7 +860,7 @@ multiplier_display = multiplier_summary.drop(columns=["setor_codigo"]).rename(co
 )
 ```
 
-Os multiplicadores da Tabela 4 mostram que o efeito agregado no output ultrapassa o choque inicial de procura final em ambos os casos. Em termos económicos, isto reflete rondas sucessivas de produção intermédia: um aumento (ou queda) de procura num setor altera as compras a fornecedores, que por sua vez ajustam a sua própria procura de inputs.
+Os multiplicadores da tabela acima mostram que o efeito agregado no output ultrapassa o choque inicial de procura final em ambos os casos. Em termos económicos, isto reflete rondas sucessivas de produção intermédia: um aumento (ou queda) de procura num setor altera as compras a fornecedores, que por sua vez ajustam a sua própria procura de inputs.
 
 ```{python}
 #| label: txt-multipliers-interpretation
@@ -878,7 +911,7 @@ tbl_l = pd.concat(rows, ignore_index=True)
 )
 ```
 
-A Tabela 5 decompõe os efeitos totais por setor afetado. Quanto maior for $l_{ij}$, maior é a sensibilidade do setor $i$ a um choque de procura final no setor $j$. Isto ajuda a identificar ligações produtivas particularmente fortes.
+A tabela de coeficientes da inversa de Leontief decompõe os efeitos totais por setor afetado. Quanto maior for $l_{ij}$, maior é a sensibilidade do setor $i$ a um choque de procura final no setor $j$. Isto ajuda a identificar ligações produtivas particularmente fortes.
 
 ```{python}
 #| label: txt-leontief-interpretation
@@ -916,25 +949,25 @@ $$
 
 que determina o output necessário em cada setor para acomodar a procura final $y$.
 
-Para preços, a lógica é dual: em vez de “quantidades produzidas”, olhamos para “custos unitários”. Para um setor produzido $i \in S$, a condição de custo unitário é:
+Para preços, usamos a versão dual do problema: em vez de acompanhar fluxos de quantidades, acompanhamos custos unitários. Para cada setor produzido $i \in S$:
 
 $$
-p_i = \sum_{j \in S} a_{ji}p_j + a_{\text{TXS},i}p_{\text{TXS}} + a_{\text{IMP\_OTHER},i}p_{\text{IMP\_OTHER}} + v_i,
+p_i = \sum_{j \in S} a_{ji}p_j + a_{\text{TXS},i}p_{\text{TXS}} + a_{\text{IMP\_OTHER\_plus},i}p_{\text{IMP\_OTHER\_plus}} + v_i,
 $$
 
 onde:
 
 - $v_i \equiv VA_i/x_i$ é o valor acrescentado por unidade de output;
-- $a_{\text{TXS},i}$ e $a_{\text{IMP\_OTHER},i}$ são as cargas diretas das duas cunhas no setor $i$;
-- $p_{\text{TXS}}$ e $p_{\text{IMP\_OTHER}}$ são preços exógenos dessas cunhas.
+- $a_{\text{TXS},i}$ e $a_{\text{IMP\_OTHER\_plus},i}$ são as cargas diretas das duas cunhas no setor $i$;
+- $p_{\text{TXS}}$ e $p_{\text{IMP\_OTHER\_plus}}$ são preços exógenos dessas cunhas.
 
-Empilhando todos os setores produzidos:
+Empilhando para todos os setores produzidos:
 
 $$
 p_S = A_{SS}^{\top}p_S + A_{WS}^{\top}p_W + v_S,
 $$
 
-com $p_W \equiv (p_{\text{TXS}}, p_{\text{IMP\_OTHER}})^\top$ e $v_S \equiv (VA_i/x_i)_{i \in S}$.
+com $p_W \equiv (p_{\text{TXS}}, p_{\text{IMP\_OTHER\_plus}})^\top$ e $v_S \equiv (VA_i/x_i)_{i \in S}$.
 
 Rearranjando:
 
@@ -948,10 +981,10 @@ $$
 p_S = (I - A_{SS}^{\top})^{-1}(v_S + A_{WS}^{\top}p_W).
 $$
 
-Na Tabela 6 mostramos **$\hat p_i$**, definido como a solução acima sob a normalização:
+Definimos o índice implícito de custos por setor sob a normalização $p_{\text{TXS}} = p_{\text{IMP\_OTHER\_plus}} = 1$:
 
 $$
-p_{\text{TXS}} = p_{\text{IMP\_OTHER}} = 1
+p_{\text{TXS}} = p_{\text{IMP\_OTHER\_plus}} = 1
 \quad \Longrightarrow \quad
 \hat p_S \equiv (I - A_{SS}^{\top})^{-1}(v_S + A_{WS}^{\top}\mathbf{1}),
 $$
@@ -962,81 +995,77 @@ $$
 \hat p_i = \left[(I - A_{SS}^{\top})^{-1}(v_S + A_{WS}^{\top}\mathbf{1})\right]_i.
 $$
 
-Assim, `p_hat` deve ser lido como um índice de custo unitário implícito no modelo, não como nível de preço observado diretamente nos dados.
-Como os coeficientes técnicos são fixos (sem substituição) e trabalhamos em valores monetários, `p_hat` deve ser interpretado como índice de propagação de custos na rede, e não como um modelo completo de preços de equilíbrio.
+Esta normalização tem uma interpretação contabilística direta. Para cada setor comprador $i$:
+
+$$
+x_i = \sum_{j \in S} x_{ji} + VA_i + W_i,
+$$
+
+onde $x_i \equiv p_i q_i$, $x_{ji} \equiv p_j q_{ji}$ e $W_i$ agrega as duas cunhas (`TXS` e `IMP_OTHER_plus`).
+
+Dividindo por $x_i$:
+
+$$
+1 = \sum_{j \in S}\frac{x_{ji}}{x_i} + \frac{VA_i}{x_i} + \frac{W_i}{x_i}
+\equiv \sum_{j \in S} a_{ji} + v_i + w_i.
+$$
+
+Empilhando:
+
+$$
+\mathbf{1} = A_{SS}^{\top}\mathbf{1} + v_S + A_{WS}^{\top}\mathbf{1}
+\quad \Longleftrightarrow \quad
+(I - A_{SS}^{\top})\mathbf{1} = v_S + A_{WS}^{\top}\mathbf{1}.
+$$
+
+Comparando com a definição de $\hat p_S$, segue que $\hat p_S = \mathbf{1}$ é a solução natural quando o fecho contabilístico é exato. Na prática, pequenas diferenças face a 1 podem surgir por arredondamentos e imperfeições de medição nos dados.
+
+Por isso, nesta base de dados, a leitura económica mais útil não é o nível de $\hat p_i$, mas sim a **resposta de $\hat p_i$ a choques de custo exógenos**.
+
+### Exercício de preços: choque de +1% em `p_IMP_OTHER_plus`
+
+Para medir propagação de custos na rede, consideramos:
+
+$$
+\Delta p_W = (\Delta p_{\text{TXS}}, \Delta p_{\text{IMP\_OTHER\_plus}})^\top = (0,\ 0.01)^\top.
+$$
+
+Com tecnologia fixa, o impacto total nos índices setoriais é:
+
+$$
+\Delta \hat p_S = (I - A_{SS}^{\top})^{-1}A_{WS}^{\top}\Delta p_W.
+$$
+
+Para cada setor $i$, reportamos a variação percentual relativa ao índice base:
+
+$$
+\%\Delta \hat p_i \equiv 100 \times \frac{\Delta \hat p_i}{\hat p_i}.
+$$
+
+Como usamos $(I-A_{SS}^{\top})^{-1}$, este efeito já inclui rondas diretas e indiretas de transmissão na rede.
 
 ```{python}
-#| label: tbl-price-components-targets
-#| tbl-cap: "Componentes diretas de custo e preço implícito (normalizado) para H51 e I."
-price_targets = price_components.loc[["H51", "I"]].copy().reset_index().rename(columns={"index": "codigo_setor"})
-price_targets["Setor"] = price_targets["codigo_setor"].apply(lambda c: f"{sector_label(c)} ({c})")
-price_targets = price_targets[["Setor", "v_share", "txs_direct", "imp_other_direct", "p_hat"]]
-(
-    price_targets.style.hide(axis="index")
-    .format({"v_share": "{:.4f}", "txs_direct": "{:.4f}", "imp_other_direct": "{:.4f}", "p_hat": "{:.4f}"})
-    .set_properties(subset=["Setor"], **{"text-align": "left"})
-    .set_properties(subset=["v_share", "txs_direct", "imp_other_direct", "p_hat"], **{"text-align": "right"})
-    .set_table_styles(
-        [
-            {"selector": "th.col_heading.col0", "props": [("text-align", "left")]},
-            {"selector": "th.col_heading.col1, th.col_heading.col2, th.col_heading.col3, th.col_heading.col4", "props": [("text-align", "right")]},
-        ],
-        overwrite=False,
-    )
-    .set_properties(**{"font-size": "0.9em"})
-)
-```
+#| label: tbl-price-import-shock-top-bottom
+#| tbl-cap: "Choque de +1% em p_IMP_OTHER_plus: 5 maiores e 5 menores variações percentuais de p_hat."
+price_shock_rank = import_cost_case.copy()
+price_shock_rank["Setor"] = price_shock_rank["sector"].map(lambda c: f"{sector_label(c)} ({c})")
+price_shock_rank = price_shock_rank.sort_values("delta_p_hat_pct_base", ascending=False)
 
-A Tabela 6 permite comparar a composição direta de custos entre os dois setores de interesse. Em termos pedagógicos:
-
-- `v_share` indica a parcela de valor acrescentado por unidade de output;
-- `txs_direct` e `imp_other_direct` mostram o peso direto das duas “cunhas” (impostos líquidos sobre produtos e outras importações);
-- `p_hat` resume o efeito total após propagação de custos na rede.
-
-```{python}
-#| label: txt-price-table-interpretation
-#| echo: false
-#| output: asis
-ph51 = price_components.loc["H51"]
-pii = price_components.loc["I"]
-
-txt = f"""
-Leitura de alguns números da Tabela 6:
-
-- Em **{sector_label('H51')} (H51)**, a componente direta de valor acrescentado é **{ph51['v_share']:.3f}**, com contribuições diretas de **TXS = {ph51['txs_direct']:.3f}** e **IMP_OTHER = {ph51['imp_other_direct']:.3f}**.
-- Em **{sector_label('I')} (I)**, a componente direta de valor acrescentado é **{pii['v_share']:.3f}**, com contribuições diretas de **TXS = {pii['txs_direct']:.3f}** e **IMP_OTHER = {pii['imp_other_direct']:.3f}**.
-- O preço implícito normalizado é **{ph51['p_hat']:.3f}** em transporte aéreo e **{pii['p_hat']:.3f}** em alojamento/restauração.
-- Interpretação económica de `p_hat`: este indicador resume o custo total unitário após propagação na rede input-output. Um **p_hat** mais elevado sugere maior intensidade de custos (diretos e indiretos) e maior sensibilidade do setor à transmissão de choques de custos vindos de fornecedores e cunhas fiscais/importadas.
-"""
-print(txt)
-```
-
-```{python}
-#| label: tbl-price-top-bottom
-#| tbl-cap: "Preço implícito normalizado: 5 maiores e 5 menores valores por setor."
-price_rank = (
-    price_components["p_hat"]
-    .sort_values(ascending=False)
-    .rename("p_hat")
-    .reset_index()
-    .rename(columns={"index": "sector"})
-)
-price_rank["Setor"] = price_rank["sector"].apply(lambda c: f"{sector_label(c)} ({c})")
-
-top5 = price_rank.head(5).copy()
+top5 = price_shock_rank.head(5).copy()
 top5["Grupo"] = "Top 5"
 
-bottom5 = price_rank.tail(5).copy().sort_values("p_hat", ascending=True)
+bottom5 = price_shock_rank.tail(5).copy().sort_values("delta_p_hat_pct_base", ascending=True)
 bottom5["Grupo"] = "Bottom 5"
 
-price_top_bottom = pd.concat([top5, bottom5], ignore_index=True)
+price_shock_top_bottom = pd.concat([top5, bottom5], ignore_index=True)
+price_shock_top_bottom = price_shock_top_bottom.rename(columns={"delta_p_hat_pct_base": "Δp_hat / p_hat (%)"})
 
 (
-    price_top_bottom[["Grupo", "Setor", "p_hat"]]
+    price_shock_top_bottom[["Grupo", "Setor", "Δp_hat / p_hat (%)"]]
     .style.hide(axis="index")
-    .format({"p_hat": "{:.4f}"})
+    .format({"Δp_hat / p_hat (%)": "{:.4f}"})
     .set_properties(subset=["Grupo", "Setor"], **{"text-align": "left"})
-    .set_properties(subset=["p_hat"], **{"text-align": "right"})
+    .set_properties(subset=["Δp_hat / p_hat (%)"], **{"text-align": "right"})
     .set_table_styles(
         [
             {"selector": "th.col_heading.col0, th.col_heading.col1", "props": [("text-align", "left")]},
@@ -1048,27 +1077,28 @@ price_top_bottom = pd.concat([top5, bottom5], ignore_index=True)
 ```
 
 ```{python}
-#| label: txt-price-figure-interpretation
+#| label: txt-price-shock-interpretation
 #| echo: false
 #| output: asis
 top1 = top5.iloc[0]
 top2 = top5.iloc[1]
 bot1 = bottom5.iloc[0]
+bot2 = bottom5.iloc[1]
 
 txt = f"""
-Leitura económica da tabela de extremos de `p_hat`:
+Leitura económica do exercício de preços:
 
-- O maior valor de `p_hat` é de **{top1['Setor']}**, com **{top1['p_hat']:.3f}**.
-- O segundo maior valor é de **{top2['Setor']}**, com **{top2['p_hat']:.3f}**.
-- O menor valor é de **{bot1['Setor']}**, com **{bot1['p_hat']:.3f}**.
-- A amplitude entre o maior e o menor `p_hat` na amostra é **{(top1['p_hat'] - bot1['p_hat']):.3f}**, o que evidencia heterogeneidade relevante na intensidade de custos setoriais.
+- O setor mais sensível ao aumento de custo importado é **{top1['Setor']}**, com **Δp_hat/p_hat = {top1['delta_p_hat_pct_base']:.4f}%**.
+- O segundo mais sensível é **{top2['Setor']}**, com **{top2['delta_p_hat_pct_base']:.4f}%**.
+- Entre os menos sensíveis, temos **{bot1['Setor']}** (**{bot1['delta_p_hat_pct_base']:.4f}%**) e **{bot2['Setor']}** (**{bot2['delta_p_hat_pct_base']:.4f}%**).
+- Estas diferenças refletem heterogeneidade na exposição direta e indireta de cada setor ao conteúdo importado capturado por `IMP_OTHER_plus`.
 """
 print(txt)
 ```
 
 ## Exercícios: choques em transporte aéreo e alojamento/restauração
 
-Nesta secção aplicamos dois choques simples de procura final para ilustrar como a rede input-output propaga efeitos entre setores.
+Depois do exercício de preços, voltamos ao bloco de quantidades e aplicamos dois choques simples de procura final para ilustrar como a rede input-output propaga efeitos entre setores.
 
 Para cada cenário, definimos um vetor de choque $\Delta y$ (com apenas um setor chocado) e calculamos:
 
@@ -1377,14 +1407,14 @@ Leitura económica da tabela acima:
 print(txt)
 ```
 
-### Decomposição: VA doméstico, cunha fiscal (`TXS`) e fuga importada (`IMP_OTHER`)
+### Decomposição: VA doméstico, cunha fiscal (`TXS`) e fuga importada (`IMP_OTHER_plus`)
 
-Nesta decomposição, os fluxos monetários ($\Delta VA$, $\Delta x_{TXS}$ e $\Delta x_{IMP\_OTHER}$) estão em **milhões de USD**.  
-As razões por unidade de choque ($\Delta x_{TXS}/\Delta y$ e $\Delta x_{IMP\_OTHER}/\Delta y$) são adimensionais e ajudam a comparar setores com escalas diferentes.
+Nesta decomposição, os fluxos monetários ($\Delta VA$, $\Delta x_{TXS}$ e $\Delta x_{IMP\_OTHER\_plus}$) estão em **milhões de USD**.  
+As razões por unidade de choque ($\Delta x_{TXS}/\Delta y$ e $\Delta x_{IMP\_OTHER\_plus}/\Delta y$) são adimensionais e ajudam a comparar setores com escalas diferentes.
 
 ```{python}
 #| label: tbl-decomposition-wedges
-#| tbl-cap: "Decomposição dos efeitos dos choques: VA, TXS e IMP_OTHER."
+#| tbl-cap: "Decomposição dos efeitos dos choques: VA, TXS e IMP_OTHER_plus."
 plus_shocks = sandbox_summary[sandbox_summary["shock_pct"] == 1.0].copy()
 plus_shocks_nonbase = plus_shocks[~plus_shocks["shock_sector"].isin(["H51", "I"])].copy()
 if plus_shocks_nonbase.empty:
@@ -1403,10 +1433,10 @@ selected_specs = [
 
 if imp_pick["shock_sector"] != txs_pick["shock_sector"]:
     selected_specs.append(
-        {"code": str(imp_pick["shock_sector"]), "pct": 1.0, "criterion": "Alto Δx_IMP_OTHER / Δy (+1%)"}
+        {"code": str(imp_pick["shock_sector"]), "pct": 1.0, "criterion": "Alto Δx_IMP_OTHER_plus / Δy (+1%)"}
     )
 else:
-    selected_specs[2]["criterion"] = "Alto Δx_TXS / Δy e Δx_IMP_OTHER / Δy (+1%)"
+    selected_specs[2]["criterion"] = "Alto Δx_TXS / Δy e Δx_IMP_OTHER_plus / Δy (+1%)"
 
 decomp_rows = []
 for spec in selected_specs:
@@ -1453,13 +1483,20 @@ for spec in selected_specs:
 
 decomp_calc = pd.DataFrame(decomp_rows)
 decomp_tbl = decomp_calc.copy()
-decomp_tbl["Setor do choque"] = decomp_tbl["setor_codigo"].map(lambda c: f"{sector_label(c)} ({c})")
-decomp_tbl["Critério"] = decomp_tbl["criterion"]
+decomp_tbl["Setor"] = decomp_tbl["setor_codigo"].map(lambda c: f"{sector_label(c)} ({c})")
+decomp_tbl["Tipo"] = decomp_tbl["criterion"].replace(
+    {
+        "Cenário base": "Base",
+        "Alto Δx_TXS / Δy (+1%)": "Alto TXS",
+        "Alto Δx_IMP_OTHER_plus / Δy (+1%)": "Alto IMP+",
+        "Alto Δx_TXS / Δy e Δx_IMP_OTHER_plus / Δy (+1%)": "Alto TXS/IMP+",
+    }
+)
 decomp_tbl["Choque (%)"] = decomp_tbl["choque_pct"]
 decomp_tbl = decomp_tbl[
     [
-        "Setor do choque",
-        "Critério",
+        "Setor",
+        "Tipo",
         "Choque (%)",
         "delta_va",
         "delta_txs",
@@ -1471,11 +1508,11 @@ decomp_tbl = decomp_tbl[
 ].rename(
     columns={
         "delta_va": "ΔVA (10^6USD)",
-        "delta_txs": "Δx_TXS (10^6USD)",
-        "delta_imp_other": "Δx_IMP_OTHER (10^6USD)",
+        "delta_txs": "ΔTXS (10^6USD)",
+        "delta_imp_other": "ΔIMP+ (10^6USD)",
         "va_share_in_delta_x": "ΔVA / ΣΔx",
-        "txs_per_delta_y": "Δx_TXS / Δy",
-        "imp_other_per_delta_y": "Δx_IMP_OTHER / Δy",
+        "txs_per_delta_y": "ΔTXS / Δy",
+        "imp_other_per_delta_y": "ΔIMP+ / Δy",
     }
 )
 
@@ -1483,25 +1520,25 @@ decomp_tbl = decomp_tbl[
     decomp_tbl.style.hide(axis="index")
     .format(
         {
-            "Choque (%)": "{:.2f}",
-            "ΔVA (10^6USD)": "{:,.2f}",
-            "Δx_TXS (10^6USD)": "{:,.2f}",
-            "Δx_IMP_OTHER (10^6USD)": "{:,.2f}",
-            "ΔVA / ΣΔx": "{:.4f}",
-            "Δx_TXS / Δy": "{:.4f}",
-            "Δx_IMP_OTHER / Δy": "{:.4f}",
+            "Choque (%)": "{:+.0f}",
+            "ΔVA (10^6USD)": "{:,.1f}",
+            "ΔTXS (10^6USD)": "{:,.1f}",
+            "ΔIMP+ (10^6USD)": "{:,.1f}",
+            "ΔVA / ΣΔx": "{:.3f}",
+            "ΔTXS / Δy": "{:.3f}",
+            "ΔIMP+ / Δy": "{:.3f}",
         }
     )
-    .set_properties(subset=["Setor do choque", "Critério"], **{"text-align": "left"})
+    .set_properties(subset=["Setor", "Tipo"], **{"text-align": "left"})
     .set_properties(
         subset=[
             "Choque (%)",
             "ΔVA (10^6USD)",
-            "Δx_TXS (10^6USD)",
-            "Δx_IMP_OTHER (10^6USD)",
+            "ΔTXS (10^6USD)",
+            "ΔIMP+ (10^6USD)",
             "ΔVA / ΣΔx",
-            "Δx_TXS / Δy",
-            "Δx_IMP_OTHER / Δy",
+            "ΔTXS / Δy",
+            "ΔIMP+ / Δy",
         ],
         **{"text-align": "right"},
     )
@@ -1515,6 +1552,7 @@ decomp_tbl = decomp_tbl[
         ],
         overwrite=False,
     )
+    .set_properties(**{"font-size": "0.88em", "line-height": "1.15"})
 )
 ```
 
@@ -1525,7 +1563,7 @@ decomp_tbl = decomp_tbl[
 h51_row = decomp_calc.loc[decomp_calc["setor_codigo"] == "H51"].iloc[0]
 i_row = decomp_calc.loc[decomp_calc["setor_codigo"] == "I"].iloc[0]
 txs_focus = decomp_calc[decomp_calc["criterion"].str.contains("TXS", regex=False)].iloc[0]
-imp_focus_candidates = decomp_calc[decomp_calc["criterion"].str.contains("IMP_OTHER", regex=False)]
+imp_focus_candidates = decomp_calc[decomp_calc["criterion"].str.contains("IMP_OTHER_plus", regex=False)]
 imp_focus = imp_focus_candidates.iloc[0] if not imp_focus_candidates.empty else txs_focus
 
 txt = f"""
@@ -1533,9 +1571,9 @@ Leitura económica da tabela acima:
 
 - As duas primeiras linhas mantêm os cenários-base (choques em **{sector_label('H51')}** e **{sector_label('I')}**), para facilitar comparação com as secções anteriores.
 - A linha com critério de alta razão **Δx_TXS/Δy** destaca **{sector_label(txs_focus['setor_codigo'])}**, com valor **{txs_focus['txs_per_delta_y']:.3f}** para um choque de +1%.
-- A linha com critério de alta razão **Δx_IMP_OTHER/Δy** destaca **{sector_label(imp_focus['setor_codigo'])}**, com valor **{imp_focus['imp_other_per_delta_y']:.3f}** para um choque de +1%.
-- Em termos económicos: **Δx_TXS/Δy** alto indica maior transmissão para a cunha fiscal sobre produtos; **Δx_IMP_OTHER/Δy** alto indica maior sensibilidade a conteúdo importado “extra-setorial”.
-- Nos cenários-base, **Δx_IMP_OTHER/Δy = {h51_row['imp_other_per_delta_y']:.3f}** em {sector_label('H51')} e **{i_row['imp_other_per_delta_y']:.3f}** em {sector_label('I')}.
+- A linha com critério de alta razão **Δx_IMP_OTHER_plus/Δy** destaca **{sector_label(imp_focus['setor_codigo'])}**, com valor **{imp_focus['imp_other_per_delta_y']:.3f}** para um choque de +1%.
+- Em termos económicos: **Δx_TXS/Δy** alto indica maior transmissão para a cunha fiscal sobre produtos; **Δx_IMP_OTHER_plus/Δy** alto indica maior sensibilidade a conteúdo importado “extra-setorial”.
+- Nos cenários-base, **Δx_IMP_OTHER_plus/Δy = {h51_row['imp_other_per_delta_y']:.3f}** em {sector_label('H51')} e **{i_row['imp_other_per_delta_y']:.3f}** em {sector_label('I')}.
 """
 print(txt)
 ```
@@ -1655,7 +1693,7 @@ sandbox_payload = {
     "responses": {c: [float(v) for v in L_ext.loc[S, c].values] for c in S},
     "v_share": [float(v_share.loc[c]) for c in S],
     "l_txs": {c: float(L_ext.loc["TXS", c]) for c in S},
-    "l_imp_other": {c: float(L_ext.loc["IMP_OTHER", c]) for c in S},
+    "l_imp_other": {c: float(L_ext.loc[WEDGE_IMPORT, c]) for c in S},
 }
 sandbox_json = json.dumps(sandbox_payload, ensure_ascii=False)
 
@@ -1755,11 +1793,11 @@ sandbox_html = """
           <tr><th style="text-align:left;">ΣΔx (Milhões USD)</th><td style="text-align:right;">${fmt2.format(totalDX)}</td></tr>
           <tr><th style="text-align:left;">ΔVA (Milhões USD)</th><td style="text-align:right;">${fmt2.format(deltaVA)}</td></tr>
           <tr><th style="text-align:left;">Δx_TXS (Milhões USD)</th><td style="text-align:right;">${fmt2.format(deltaTXS)}</td></tr>
-          <tr><th style="text-align:left;">Δx_IMP_OTHER (Milhões USD)</th><td style="text-align:right;">${fmt2.format(deltaImpOther)}</td></tr>
+          <tr><th style="text-align:left;">Δx_IMP_OTHER_plus (Milhões USD)</th><td style="text-align:right;">${fmt2.format(deltaImpOther)}</td></tr>
           <tr><th style="text-align:left;">Multiplicador de output</th><td style="text-align:right;">${Number.isFinite(outputMult) ? fmt3.format(outputMult) : "n.d."}</td></tr>
           <tr><th style="text-align:left;">Multiplicador de VA</th><td style="text-align:right;">${Number.isFinite(vaMult) ? fmt3.format(vaMult) : "n.d."}</td></tr>
           <tr><th style="text-align:left;">Δx_TXS / Δy</th><td style="text-align:right;">${Number.isFinite(taxWedge) ? fmt3.format(taxWedge) : "n.d."}</td></tr>
-          <tr><th style="text-align:left;">Δx_IMP_OTHER / Δy</th><td style="text-align:right;">${Number.isFinite(impLeak) ? fmt3.format(impLeak) : "n.d."}</td></tr>
+          <tr><th style="text-align:left;">Δx_IMP_OTHER_plus / Δy</th><td style="text-align:right;">${Number.isFinite(impLeak) ? fmt3.format(impLeak) : "n.d."}</td></tr>
         </tbody>
       </table>
     `;
@@ -1855,62 +1893,7 @@ Leitura económica do sandbox:
 - O cálculo é sempre **$\Delta x = (I-A)^{{-1}}\Delta y$**: os resultados incluem efeito inicial e propagação em rede.
 - Se escolher a unidade `% de y`, o sandbox converte automaticamente o valor em choque absoluto de procura final para o setor selecionado.
 - Se escolher `Milhões USD`, o choque entra diretamente como $\Delta y$ absoluto.
-- O quadro-resumo mostra, para o mesmo choque, produção total, valor acrescentado e decomposição para `TXS` e `IMP_OTHER`, o que ajuda a comparar setores com maior transmissão fiscal/importada.
-"""
-print(txt)
-```
-
-### Mini-caso de política: aumento do custo importado (`IMP_OTHER`)
-
-Consideramos um choque de preços exógenos nas cunhas:
-
-$$
-\Delta p_W = (\Delta p_{\text{TXS}}, \Delta p_{\text{IMP\_OTHER}})^\top = (0,\ 0.10)^\top.
-$$
-
-Com coeficientes fixos, o efeito em custos unitários dos setores produzidos é:
-
-$$
-\Delta p_S = (I - A_{SS}^{\top})^{-1}A_{WS}^{\top}\Delta p_W.
-$$
-
-```{python}
-#| label: tbl-import-cost-mini-case
-#| tbl-cap: "Mini-caso: principais setores afetados por um aumento de 10% em IMP_OTHER."
-mini_case_rank = import_cost_case.copy()
-mini_case_rank["Setor"] = mini_case_rank["sector"].map(lambda c: f"{sector_label(c)} ({c})")
-mini_case_rank = mini_case_rank.sort_values("delta_p_hat_pct_base", ascending=False).head(15)
-mini_case_tbl = mini_case_rank[["Setor", "delta_p_hat_pct_base"]].rename(
-    columns={"delta_p_hat_pct_base": "Δp_hat / p_hat_base (%)"}
-)
-
-(
-    mini_case_tbl.style.hide(axis="index")
-    .format({"Δp_hat / p_hat_base (%)": "{:.2f}"})
-    .set_properties(subset=["Setor"], **{"text-align": "left"})
-    .set_properties(subset=["Δp_hat / p_hat_base (%)"], **{"text-align": "right"})
-    .set_table_styles(
-        [
-            {"selector": "th.col_heading.col0", "props": [("text-align", "left")]},
-            {"selector": "th.col_heading.col1", "props": [("text-align", "right")]},
-        ],
-        overwrite=False,
-    )
-)
-```
-
-```{python}
-#| label: txt-import-cost-interpretation
-#| echo: false
-#| output: asis
-top_imp_case = mini_case_rank.iloc[0]
-
-txt = f"""
-Leitura económica do mini-caso:
-
-- Um aumento exógeno do custo de `IMP_OTHER` propaga-se para os custos setoriais via matriz transposta de coeficientes técnicos.
-- A tabela ordena os setores do maior para o menor impacto relativo, medido por **Δp_hat / p_hat_base (%)**.
-- O setor mais sensível neste exercício é **{top_imp_case['Setor']}**, com variação relativa de **{top_imp_case['delta_p_hat_pct_base']:.2f}%** face ao seu `p_hat` de base.
+- O quadro-resumo mostra, para o mesmo choque, produção total, valor acrescentado e decomposição para `TXS` e `IMP_OTHER_plus`, o que ajuda a comparar setores com maior transmissão fiscal/importada.
 """
 print(txt)
 ```
