@@ -723,6 +723,8 @@ focus_labels = [s for s in focus_labels if s in set(check_tbl["setor"])]
 )
 ```
 
+O nível de `x_ext` no setor fictício `IMP_OTHER_plus` não deve ser lido como “total de importações” do país; é um objeto de fecho contabilístico na base raw. O que tem leitura económica direta neste módulo são as variações `ΔIMP+` e as razões por unidade de choque.
+
 ## Interpretação da matriz técnica $A$
 
 Cada entrada da matriz técnica tem interpretação direta:
